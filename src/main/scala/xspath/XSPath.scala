@@ -1,10 +1,10 @@
-package xsq
+package xspath
 
-import sq.SQ
+import spath.SPath
 import org.w3c.dom.Node
 import scala.collection.immutable.VectorBuilder
 
-trait XSQ extends SQ[Node] {
+trait XSPath extends SPath[Node] {
 
   override def children = n =>
     if (!n.hasChildNodes) empty

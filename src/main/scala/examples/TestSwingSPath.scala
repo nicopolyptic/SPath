@@ -1,12 +1,13 @@
 package examples
 
+import _root_.swingspath.SwingSPath
 import java.awt._
 import runtime.Int
 import javax.swing._
-import swingsq.SwingSQ
+import swingspath.SwingSPath
 import java.lang.{System}
 
-object TestSwingSQ extends SwingSQ {
+object TestSwingSPath extends SwingSPath {
   def main(args: Array[String]): Unit = {
 
     SwingUtilities.invokeAndWait(new Runnable() {
@@ -29,8 +30,14 @@ object TestSwingSQ extends SwingSQ {
 
 
         }
-        else
-        if (false) {
+        else  if (false) {
+
+          val query = \\(*)
+          var result = $(query)(cp)
+          for (o <- result) o match {case c: TreeMapPanel => c.color = Color.green case _ =>}
+
+
+        } else  if (true) {
 
           val query = \(descendants(3), nth(1)\(following, nth(2)))
           var result = $(query)(cp)

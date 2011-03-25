@@ -1,12 +1,12 @@
-package swingsq
+package swingspath
 
-import sq._
+import spath._
 
 import collection.mutable.WrappedArray.ofRef
 
 import java.awt.{Component, Container}
 
-trait SwingSQ extends SQ[Component] {
+trait SwingSPath extends SPath[Component] {
 
   override def children = (c : Component) =>
     c match {

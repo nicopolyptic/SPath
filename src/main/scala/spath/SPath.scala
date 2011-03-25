@@ -1,9 +1,8 @@
-package sq
+package spath
 
 import collection.mutable.{Set}
-import annotation.tailrec
 
-trait SQ[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
+trait SPath[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
 
   def parent: axis
   def children: T => IndexedSeq[T]
@@ -17,7 +16,6 @@ trait SQ[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
   final def \(e: Expr): Expr = \(defaultAxis, e)
   final def \\(e: Expr): Expr = \\(defaultAxis, e)
 
-  final def select(e: Expr) = markSelected(e)
   final def ?(p: predicate) = Predicate(p)
   final def ?[C](cls: Class[C]): Predicate = ?(o => cls.isAssignableFrom(o.getClass()))
   final def nth(i: Int) = ?(o => position(o) == i)
@@ -50,11 +48,19 @@ trait SQ[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
       case None => 0
     }
 
-  def $(e: Expr) : T => Set[T] = {
+  def $(n : T, e: Expr) : Iterable[T] = $(e)(n)
+  def $$(n : T, e: Expr) : Iterable[T] = $$(e)(n)
+
+  def $(e: Expr) : T => Iterable[T] = {
     if (!isValidSQExpression(e))
-      throw new Exception("SQ expression contains branching conflicts.")
-    if (!isSelected(e)) selectRightMost(e)
-    evaluate(e)
+      throw new Exception("SPath expression contains branching conflicts.")
+    evaluateWithoutCaching(e)
+  }
+
+  def $$(e: Expr) : T => Iterable[T] = {
+    if (!isValidSQExpression(e))
+      throw new Exception("SPath expression contains branching conflicts.")
+    evaluateWithCaching(e)
   }
 
   final def compose(f: axis, n: Int, s: Iterable[T]): Iterable[T] =
@@ -65,6 +71,8 @@ trait SQ[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
 
   final def not(e : Expr) = e match {
     case Predicate(p) => ?(o => !p(o))
-    case e : Expr => ?(o => $(e)(o).size == 0)
+    case e : Expr => ?(o => $(o, e).size == 0)
   }
+
+  final def exists(e : Expr) = ?(o => $(o, e).size > 0)
 }

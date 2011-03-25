@@ -1,102 +1,123 @@
-package sq
+package spath
 
 import annotation.tailrec
-import collection.mutable.{Stack, HashSet, Set}
+import collection.mutable.{HashMap, Stack, HashSet, Set, Map}
+import collection.immutable.Iterable
+import collection.immutable.VectorBuilder
 
 trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
 
   private def createGraph(e: Expr): Node = Algorithm.createGraph(e)
 
-  def evaluate(e: Expr): T => Set[T] = {
+  def evaluateWithoutCaching(e: Expr): T => Iterable[T] = {
     val n = createGraph(e)
-    o => evaluate(o, n.next(o))
-  }
 
+    val map = new HashMap[Node, Iterable[T]]
+
+    o => {
+      for (node <- n.next(o))
+        map.put(node, List(o))
+      startEvaluation
+      val result = evaluate(map, List())
+      endEvaluation
+      result
+    }
+  }
 
   protected def startEvaluation = {}
   protected def endEvaluation = {}
 
+  private def evaluate(map: Map[Node, Iterable[T]],
+                       result: Iterable[T]): Iterable[T] = {
 
-  private def evaluate(rootObject: T, nodes: Set[Node]): Set[T] = {
-
-    startEvaluation
-
-    val resultSet = new HashSet[T]
-    val stack = new Stack[Tuple3[T,Node,Set[T]]]
-
-    for (node <- nodes)
-      stack push ((rootObject, node, new HashSet[T]))
-
-    while (stack.size > 0) {
-
-      val state = stack.pop()
-      if (state._2.isSelected()) state._3 += state._1
-      if (state._2.isAccepting()) resultSet ++= state._3
-      else {
-        val axis = state._2.axis
-        for (o <- axis(state._1))
-          for (nd <- state._2.next(o))
-            stack push ((o, nd, state._3.clone))
-      }
-    }
-
-    endEvaluation
-    resultSet
-  }
-
-  private def evaluate2(rootObject: T, nodes: Set[Node]): Set[T] = {
-
-    val resultSet = new HashSet[T]
-    val stack = new Stack[Tuple4[T,Node,Set[T],Set[State]]]
-
-    val visitedStates = new HashSet[State]()
-    val acceptingPathStates = new HashSet[State]()
-
-    for (node <- nodes)
-      stack push ((rootObject, node, new HashSet[T], new HashSet[State]))
-
-    while (stack.size > 0) {
-
-      val state = stack.pop()
-      val visitedState = new State(state._1, state._2)
-      visitedStates += visitedState
-      state._4 += visitedState
-
-      if (state._2.isSelected()) state._3 += state._1
-      if (state._2.isAccepting()) {
-        resultSet ++= state._3
-        acceptingPathStates ++= state._4
-      } else {
-        val axis = state._2.axis
-        for (o <- axis(state._1))
-          for (nd <- state._2.next(o)) {
-            val visitedState = new State(o, nd)
-            if (visitedStates.contains(visitedState)) {
-              if (acceptingPathStates.contains(visitedState))
-                resultSet ++= state._3
-            } else
-              stack push ((o, nd, state._3.clone, state._4.clone))
+    if (map.keys.size == 0) return result
+    val newMap = new HashMap[Node, Iterable[T]]
+    var newResult = new VectorBuilder[T]
+    for (node <- map.keys)
+      map.get(node) match {
+        case Some(set) =>
+          if (node.finalNode) newResult ++= set
+          else {
+            val children = set.flatMap(node.uniqueAxis)
+            for (nextNode <- node.outgoing) {
+              val newSet = children.filter(o => nextNode.isSatisfiedBy(o))
+              if (newSet.size > 0) newMap.put(nextNode, newSet)
+            }
           }
       }
-    }
-    resultSet
+    evaluate(newMap, result ++ newResult.result)
   }
 
-  private class State(val o: T, val node: Node) {
+  def evaluateWithCaching(e: Expr): T => Iterable[T] = {
+    val n = createGraph(e)
 
-    override def hashCode = java.lang.System.identityHashCode(o) + node.name.hashCode * 31
+    val map = new HashMap[Node, Iterable[T]]
 
-    override def equals(obj: Any) =
-      obj match {
-        case v: State => v.node.name.equals(node.name) && (v.o eq o)
+    o => {
+      for (node <- n.next(o))
+        map.put(node, List(o))
+      startEvaluation
+      val result = evaluateWithCache(map, List(), new VisitedStates)
+      endEvaluation
+      result
+    }
+  }
+
+  private class VisitedStates {
+    val map: Map[Node, Set[IdentityWrapper[T]]] = new HashMap[Node, Set[IdentityWrapper[T]]]
+
+    def put(node: Node, objects: Iterable[T]) {
+      var setOption = map.get(node)
+      setOption match {
+        case Some(set) => set ++= objects.map(o => IdentityWrapper(o))
+        case None =>
+          val set = new HashSet[IdentityWrapper[T]]
+          set ++= objects.map(o => IdentityWrapper(o))
+          map.put(node, set)
+      }
+    }
+
+    def contains(node: Node, o: T) =
+      map.get(node) match {
+        case Some(set) => set.contains(IdentityWrapper(o))
+        case _ => false
       }
   }
 
+  private def evaluateWithCache(map: Map[Node, Iterable[T]], result: Iterable[T], visited: VisitedStates): Iterable[T] = {
 
+    if (map.keys.size == 0) return result
+    val newMap = new HashMap[Node, Iterable[T]]
+    var newResult = new VectorBuilder[T]
+    for (node <- map.keys)
+      map.get(node) match {
+        case Some(set) =>
+          if (node.finalNode) newResult ++= set
+          else {
+            val children = set.flatMap(node.uniqueAxis)
+            for (nextNode <- node.outgoing) {
+              val newSet = children.filter(o => nextNode.isSatisfiedBy(o))
+              if (newSet.size > 0) {
+                newMap.put(nextNode, newSet.filter(o => !visited.contains(nextNode, o)))
+                visited.put(nextNode, newSet)
+              }
+            }
+          }
+      }
+    evaluateWithCache(newMap, result ++ newResult.result, visited)
+  }
+
+  /**
+   * Implementation of Moshe, Wolper et al.
+   */
   private object Algorithm {
-    var i: Int = 0
+    var i = 0
 
-    def newName = {val k: Int = i; i += 1; k.toString}
+    def newName = {
+      val k = i;
+      i += 1;
+      k.toString
+    }
 
     def expand(n: Node, nl: Set[Node]): Set[Node] = {
       if (n.New.size == 0) {
@@ -106,18 +127,18 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
           nd.incoming ++= n.incoming
           return nl
         }
-        else
-          {
-            nl += n
-            //  if (n.next.size > 0) {
+        else {
+          nl += n
+          if (n.next.size > 0) {
+            // skip the very last state with the infinite loop.
 
             var newn = new Node(newName)
             newn.incoming += n
             newn.New ++= n.next
             return expand(newn, nl)
-            //          } else
-            //            return nl
-          }
+          } else
+            return nl
+        }
       }
       else {
 
@@ -177,10 +198,25 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       n.New += e
       val ns = expand(n, new HashSet[Node])
 
-      for (n <- ns)
+      for (n <- ns) {
         for (i <- n.incoming)
           i.outgoing += n
+        n.uniqueAxis = n.findUniqueAxis()
+        n.finalNode = n.next.size == 0
+      }
+
+      markLoopNodes(ns, new HashSet[Node], 1, ns.size)
+//      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
+//      print(ns)
       i
+    }
+
+    private def markLoopNodes(nodes: Set[Node], visited: Set[Node], length: Int, numberOfNodes: Int) {
+
+      for (n <- nodes) if (visited.contains(n)) n.loop = true
+
+      if (length < numberOfNodes + 1)
+        markLoopNodes(nodes.flatMap(o => o.outgoing), visited ++ nodes, length + 1, numberOfNodes)
     }
 
     private def print(l: Set[Node]) {
@@ -199,6 +235,10 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
     val old: Set[expr] = new HashSet[expr]
     val next: Set[expr] = new HashSet[expr]
     val outgoing = new HashSet[node]
+
+    var uniqueAxis: axis = null
+    var finalNode: Boolean = false
+    var loop: Boolean = false
 
     def findNode5(l: Set[node]) = {
       var node: node = null
@@ -224,20 +264,6 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       case _ => null
     }
 
-    def isAccepting() = next.size == 0
-
-    def isSelected() = isSelectedAux(old.toArray, 0)
-
-    def isSelectedAux(es: Array[expr], i: Int): Boolean = {
-
-      if (i > es.size - 1) false
-      else
-        es(i) match {
-          case p: Predicate => if (p.selected) true else isSelectedAux(es, i + 1)
-          case _ => isSelectedAux(es, i + 1)
-        }
-    }
-
     def next(o: T) = {
       var result: Set[node] = new HashSet[node]
       nextAux(o, outgoing.toArray, 0, result)
@@ -259,7 +285,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       return false
     }
 
-    def axis: axis = {
+    def findUniqueAxis(): axis = {
       if (old.size == 0)
         (o: T) => new HashSet[T]
 
@@ -299,6 +325,12 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
         }
       }
       return true
+    }
+
+    override def hashCode = name.hashCode
+
+    override def equals(that: Any) = that match {
+      case other: Node => other.name.equals(this.name)
     }
   }
 }
