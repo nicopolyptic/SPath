@@ -5,14 +5,13 @@ import _root_.xspath.XSPathLite
 object TreeTraversalWithIdReferencingExample extends XSPathLite {
 
   val node = elem("node")
-  def node(p: Predicate): Expr = node and p
-  def name(text: String) = @@("name", text)
-  def id(txt: String) = @@("id", txt)
-  def pid(txt: String) = @@("pid", txt)
+  def node(p: Query): Query = node and p
+  def name(text: String) = ?@("name", text)
+  def id(txt: String) = ?@("id", txt)
+  def pid(txt: String) = ?@("pid", txt)
 
   val parentNode : axis = n => $(n, \(parent)\node(id(@@("pid", n))))
   val childNode : axis = n => $(n, \(parent)\node(pid(@@("id", n))))
-  val root = ?(n => @@?("pid", n) match {case None => true case _ => false})
 
   def main(args: Array[String]): Unit = {
 
@@ -39,10 +38,11 @@ object TreeTraversalWithIdReferencingExample extends XSPathLite {
       </forest>
 
 
-    val result1 = $(forest, \\(node(name("G")))\\(parentNode, root))
+    val result1 = $(forest, \\(node(name("G")))\\(parentNode, not(exists("pid"))))
     println(result1 map @@("name"))
 
-    val result2 = $(forest, \\(node(name("A")))\(childNode)\\(childNode))
+
+    val result2 = $(forest, \\(node(name("A") and id("1")))\childNode\\childNode)
     println(result2 map @@("name"))
   }
 }

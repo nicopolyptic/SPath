@@ -5,11 +5,11 @@ import collection.mutable.{HashMap, Stack, HashSet, Set, Map}
 import collection.immutable.Iterable
 import collection.immutable.VectorBuilder
 
-trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
+trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
-  private def createGraph(e: Expr): Node = Algorithm.createGraph(e)
+  private def createGraph(e: Query): Node = Algorithm.createGraph(e)
 
-  def evaluateWithoutCaching(e: Expr): T => Iterable[T] = {
+  def evaluateWithoutCaching(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
     val map = new HashMap[Node, Iterable[T]]
@@ -27,6 +27,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
   protected def startEvaluation = {}
   protected def endEvaluation = {}
 
+  @tailrec
   private def evaluate(map: Map[Node, Iterable[T]],
                        result: Iterable[T]): Iterable[T] = {
 
@@ -48,7 +49,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
     evaluate(newMap, result ++ newResult.result)
   }
 
-  def evaluateWithCaching(e: Expr): T => Iterable[T] = {
+  def evaluateWithCaching(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
     val map = new HashMap[Node, Iterable[T]]
@@ -84,6 +85,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       }
   }
 
+  @tailrec
   private def evaluateWithCache(map: Map[Node, Iterable[T]], result: Iterable[T], visited: VisitedStates): Iterable[T] = {
 
     if (map.keys.size == 0) return result
@@ -142,9 +144,9 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       }
       else {
 
-        val a: Array[Expr] = new Array[Expr](n.New.size)
+        val a: Array[Query] = new Array[Query](n.New.size)
         n.New.copyToArray(a)
-        val eta: Expr = a(0)
+        val eta: Query = a(0)
         n.New -= eta
 
         eta match {
@@ -190,7 +192,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       }
     }
 
-    def createGraph(e: Expr): Node = {
+    def createGraph(e: Query): Node = {
 
       val n = new Node(newName)
       val i = new Node("init")
@@ -228,7 +230,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
 
   private class Node(val name: String) {
     type node = Node
-    type expr = Expr
+    type expr = Query
 
     val incoming: Set[node] = new HashSet[node]
     val New: Set[expr] = new HashSet[expr]
@@ -277,7 +279,7 @@ trait LTLGraphAlgorithm[T <: AnyRef] extends Expression[T] {
       nextAux(a, s, i + 1, result)
     }
 
-    def oldContains(e: Expr): Boolean = {
+    def oldContains(e: Query): Boolean = {
       for (oldE <- old) {
         if (e eq oldE)
           return true

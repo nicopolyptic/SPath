@@ -39,18 +39,20 @@ trait XSPathLite extends SPathLite[Node] {
   def @@(attributeName : String, n : Node) : String =
     n.attributes.asAttrMap.get(attributeName) match {case Some(s) => s case None => ""}
 
-  def @@?(attributeName : String, n: Node) : Option[String] =
+  def ?@(attributeName : String, n: Node) : Option[String] =
     n.attributes.asAttrMap.get(attributeName)
 
-  def @@(attributeName : String, value : String) : Predicate =
-    ?(n => @@?(attributeName, n) match {
+  def ?@(attributeName : String, value : String) : Predicate =
+    ?(n => ?@(attributeName, n) match {
       case Some(attributeValue) => attributeValue == value
       case None => false
     })
 
-  final def @@(attributeName : String, e : Expr) : Predicate =
+  final def ?@(attributeName : String, e : Query) : Predicate =
     ?(n => $(n, e insert (?(m => @@(attributeName, n) == @@(attributeName, m)))).size > 0)
 
   def @@(attributeName : String) : Node => String = n => @@(attributeName, n)
+
+  def exists(attributeName : String) = ?(n => ?@(attributeName, n) match {case None => false case Some(s) => true})
 
 }

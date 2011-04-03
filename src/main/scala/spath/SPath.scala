@@ -2,19 +2,19 @@ package spath
 
 import collection.mutable.{Set}
 
-trait SPath[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
+trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
 
   def parent: axis
   def children: T => IndexedSeq[T]
 
-  final def \\(f: axis, e: Expr): Expr = * U (f, e)
-  final def \(f: axis, e: Expr): Expr = X(f, e)
-  final def \\(f: axis): Expr = \\(f, *)
-  final def \(f: axis): Expr = \(f, *)
+  final def \\(f: axis, e: Query): Query = * U (f, e)
+  final def \(f: axis, e: Query): Query = X(f, e)
+  final def \\(f: axis): Query = \\(f, *)
+  final def \(f: axis): Query = \(f, *)
 
   override def defaultAxis = children
-  final def \(e: Expr): Expr = \(defaultAxis, e)
-  final def \\(e: Expr): Expr = \\(defaultAxis, e)
+  final def \(e: Query): Query = \(defaultAxis, e)
+  final def \\(e: Query): Query = \\(defaultAxis, e)
 
   final def ?(p: predicate) = Predicate(p)
   final def ?[C](cls: Class[C]): Predicate = ?(o => cls.isAssignableFrom(o.getClass()))
@@ -48,17 +48,17 @@ trait SPath[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
       case None => 0
     }
 
-  def $(n : T, e: Expr) : Iterable[T] = $(e)(n)
-  def $$(n : T, e: Expr) : Iterable[T] = $$(e)(n)
+  def $(n : T, e: Query) : Iterable[T] = $(e)(n)
+  def $$(n : T, e: Query) : Iterable[T] = $$(e)(n)
 
-  def $(e: Expr) : T => Iterable[T] = {
-    if (!isValidSQExpression(e))
+  def $(e: Query) : T => Iterable[T] = {
+    if (!SPath(e))
       throw new Exception("SPath expression contains branching conflicts.")
     evaluateWithoutCaching(e)
   }
 
-  def $$(e: Expr) : T => Iterable[T] = {
-    if (!isValidSQExpression(e))
+  def $$(e: Query) : T => Iterable[T] = {
+    if (!SPath(e))
       throw new Exception("SPath expression contains branching conflicts.")
     evaluateWithCaching(e)
   }
@@ -69,10 +69,10 @@ trait SPath[T <: AnyRef] extends Expression[T] with LTLGraphAlgorithm[T] {
 
   final def descendants(n: Int): axis = o => compose(child, n, List(o))
 
-  final def not(e : Expr) = e match {
+  final def not(e : Query) = e match {
     case Predicate(p) => ?(o => !p(o))
-    case e : Expr => ?(o => $(o, e).size == 0)
+    case e : Query => ?(o => $(o, e).size == 0)
   }
 
-  final def exists(e : Expr) = ?(o => $(o, e).size > 0)
+  final def exists(e : Query) = ?(o => $(o, e).size > 0)
 }
