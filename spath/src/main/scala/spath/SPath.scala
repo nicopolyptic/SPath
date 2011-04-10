@@ -67,6 +67,8 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
 
   final def descendants(i: Int): axis = n => compose(child, i, List(n))
 
+  final def parent(i: Int): axis = n => compose(parent, i, List(n))
+
   final def not(e : Query) = e match {
     case Predicate(p) => ?(n => !p(n))
     case e : Query => ?(n => $(n, e).size == 0)

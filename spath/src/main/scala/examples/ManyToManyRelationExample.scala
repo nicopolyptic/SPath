@@ -23,29 +23,26 @@ object ManyToManyRelationExample extends XSPathLite {
 
   def courseAxis : axis = n => n.label match {
     case "student" =>
-      $(n, \(parent)\parent\courses\course(exists(\(students)\student(id(@@("id", n))))))
+      $(n, \(parent(2))\courses\course(exists(\\(student(id(@@("id", n)))))))
     case "tutor" =>
-      $(n, \(parent)\parent\courses\course(tid(@@("id",n))))
+      $(n, \(parent(2))\courses\course(tid(@@("id",n))))
     case _ => empty
   }
 
   def tutorAxis : axis = n => n.label match {
     case "student" => $(n, \(courseAxis)\tutorAxis)
-    case "course" => $(n, \(parent)\parent\tutors\tutor(id(@@("tid", n))))
+    case "course" => $(n, \(parent(2))\tutors\tutor(id(@@("tid", n))))
     case _ => empty
   }
 
   def studentAxis : axis = n => n.label match {
     case "tutor" => $(n, \(courseAxis)\studentAxis)
-    case "course" => $(n, \(parent)
-                          \parent
+    case "course" => $(n, \(parent(2))
                           \students
-                          \student(?@("id", \(parent)
-                                            \parent
+                          \student(?@("id", \(parent(2))
                                             \courses
                                             \course(id(@@("id",n)))
-                                            \students
-                                            \student)))
+                                            \\student)))
     case _ => empty
   }
 
