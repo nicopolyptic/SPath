@@ -34,15 +34,15 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     if (map.keys.size == 0) return result
     val newMap = new HashMap[Node, Iterable[T]]
     var newResult = new VectorBuilder[T]
-    for (node <- map.keys)
-      map.get(node) match {
-        case Some(set) =>
-          if (node.finalNode) newResult ++= set
+    for (q <- map.keys)
+      map.get(q) match {
+        case Some(ns) =>
+          if (q.finalNode) newResult ++= ns
           else {
-            val children = set.flatMap(node.uniqueAxis)
-            for (nextNode <- node.outgoing) {
-              val newSet = children.filter(o => nextNode.isSatisfiedBy(o))
-              if (newSet.size > 0) newMap.put(nextNode, newSet)
+            val children = ns.flatMap(q.uniqueAxis)
+            for (q2 <- q.outgoing) {
+              val ns2 = children.filter(n => q2.isSatisfiedBy(n))
+              if (ns2.size > 0) newMap.put(q2, ns2)
             }
           }
       }
