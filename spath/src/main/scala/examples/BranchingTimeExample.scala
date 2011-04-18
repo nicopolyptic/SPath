@@ -10,17 +10,14 @@ object BranchingTimeExample extends XSPathLite {
 
     val doc =
       <R>
-        <B>
-            <A/>
-            <A/>
-        </B>
+        <B><A/><A/></B>
         <C>
             <A/>
             <D/>
         </C>
       </R>
 
-    val result = $(doc, \\(not(exists(\(<*> and not(A))))))
+    val result = $(doc, \\(not(exists(\(not(A))))))
     println(result)
   }
 }
