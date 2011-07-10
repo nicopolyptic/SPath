@@ -153,28 +153,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
           case _: Predicate =>
             n.old += eta
             return expand(n, nl)
-          case _: Until =>
-            var n1 = new Node(newName)
-            n1.New += n.new1(eta)
-            n1.New --= n.old
-            n1.New ++= n.New
-
-            n1.incoming ++= n.incoming
-            n1.old ++= n.old += eta
-            n1.next ++= n.next
-            n1.next += n.next1(eta)
-
-            var n2 = new Node(newName)
-            n2.New += n.new2(eta)
-            n2.New --= n.old
-            n2.New ++= n.New
-
-            n2.incoming ++= n.incoming
-            n2.old ++= n.old += eta
-            n2.next ++= n.next
-
-            return expand(n1, expand(n2, nl))
-
           case And(l, r) =>
             if (!n.old.contains(l))
               n.New += l
@@ -188,6 +166,31 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
             n.old += eta
             n.next += x.next
             return expand(n, nl)
+          case _ =>
+            var n1 = new Node(newName)
+            n1.New += n.new1(eta)
+            n1.New --= n.old
+            n1.New ++= n.New
+
+            n1.incoming ++= n.incoming
+            n1.old ++= n.old += eta
+            n1.next ++= n.next
+
+            n.next1(eta) match {
+              case Some(e) => n1.next += e
+              case None =>
+            }
+
+            var n2 = new Node(newName)
+            n2.New += n.new2(eta)
+            n2.New --= n.old
+            n2.New ++= n.New
+
+            n2.incoming ++= n.incoming
+            n2.old ++= n.old += eta
+            n2.next ++= n.next
+
+            return expand(n1, expand(n2, nl))
         }
       }
     }
@@ -208,8 +211,8 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       }
 
       markLoopNodes(ns, new HashSet[Node], 1, ns.size)
-//      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
-//      print(ns)
+      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
+      print(ns)
       i
     }
 
@@ -253,16 +256,19 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
     def new1(e: expr) = e match {
       case u: Until => u.l
+      case o : Or => o.l
       case _ => null
     }
 
     def new2(e: expr) = e match {
       case u: Until => u.r
+      case o : Or => o.r
       case _ => null
     }
 
-    def next1(e: expr) = e match {
-      case u: Until => u
+    def next1(e: expr) : Option[Query] = e match {
+      case u: Until => Some(u)
+      case o : Or => None
       case _ => null
     }
 
