@@ -19,10 +19,9 @@ trait SPathLite[T <: AnyRef] extends SPath[T] {
   }
 
   private val parentRelation = new HashMap[IdentityWrapper[T],T]
-  private var depth = 0
-  override def startEvaluation = depth += 1
+
   override def endEvaluation = {
-    depth -=  1
+    super.endEvaluation
     if (depth == 0)
        parentRelation.clear
   }

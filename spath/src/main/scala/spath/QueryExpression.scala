@@ -7,6 +7,7 @@ trait QueryExpression[T] {
   final def * = Predicate(_ => true)
   def defaultAxis: axis
   def SPath(e: Query) = Query.SPath(e)
+  def exists : Query => Predicate
 
   class Query {
     def and(e: Query) = And(this, e)
@@ -28,6 +29,7 @@ trait QueryExpression[T] {
     def \(f : axis) : Query = \(f, *)
     def \\(e : Query) : Query = \\(defaultAxis, e)
     def \(e : Query) : Query = \(defaultAxis, e)
+    def ?(e : Query) : Query = this and exists(e)
   }
 
   case class Predicate(p: T => Boolean) extends Query {

@@ -7,13 +7,6 @@ trait XSPathLite extends SPathLite[Node] {
 
   override def childAxis = (n: Node) => n.child.toIndexedSeq
 
-  def elem(label: String): Predicate =
-    ?(n =>
-      n match {
-        case _: Elem => n.label == label
-        case _ => false
-      })
-
   def <*> = ?(n =>
       n match {
         case _: Elem => true
@@ -55,4 +48,24 @@ trait XSPathLite extends SPathLite[Node] {
 
   def exists(attributeName : String) = ?(n => ?@(attributeName, n) match {case None => false case Some(s) => true})
 
+  class Attribute(name : String) {
+    def == (value : String) = Predicate(n => @@(name, n) == value)
+  }
+
+  object Attribute {
+    def apply(name:String) = new Attribute(name)
+  }
+
+  class Element(label : String) extends Predicate(element(label))
+
+  object Element {
+    def apply(label: String) = new Element(label);
+  }
+
+  def element(label: String) : predicate =
+    n =>
+      n match {
+        case _: Elem => n.label == label
+        case _ => false
+      }
 }

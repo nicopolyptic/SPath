@@ -4,8 +4,11 @@ import _root_.xspath.XSPathLite
 
 object BranchingTimeExample extends XSPathLite {
 
-  val A = elem("A")
-
+  val A = Element("A")
+  val B = Element("B")
+  val C = Element("C")
+  val D = Element("D")
+  def A(p:Query) : Query = p and A
   def main(args: Array[String]): Unit = {
 
     val doc =
@@ -19,5 +22,17 @@ object BranchingTimeExample extends XSPathLite {
 
     val result = $(doc, \\(not(exists(\(not(A))))))
     println(result)
+
+
+    println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+   var  query :Query =  (* or *) U(child,*)
+   $(doc, query)
+
+
+   query = \\(A(\(B) or \(parent, C)))\D
+       $(doc, query)
+
+   query = \\(A ?(\(B) or \(parent, C))) \ D
+   $(doc, query)
   }
 }

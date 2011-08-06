@@ -1,37 +1,36 @@
 package examples
 
 import _root_.xspath.XSPathLite
-import xml.Node
 
 object ManyToManyRelationExample extends XSPathLite {
 
-  def student  = elem("student")
-  def students = elem("students")
+  def student  = Element("student")
+  def students = Element("students")
   def student(p: Predicate): Query = p and student
 
-  def courses = elem("courses")
-  def course = elem("course")
+  def courses = Element("courses")
+  def course = Element("course")
   def course(p: Predicate): Query = p and course
 
-  def tutor = elem("tutor")
-  def tutors = elem("tutors")
+  def tutor = Element("tutor")
+  def tutors = Element("tutors")
   def tutor(p: Predicate): Query = p and tutor
 
-  def id(txt: String) = ?@("id", txt)
-  def tid(txt: String) = ?@("tid", txt)
-  def name(txt: String) = ?@("name", txt)
+  def id = Attribute("id")
+  def tid = Attribute("tid")
+  def name = Attribute("name")
 
   def courseAxis : axis = n => n.label match {
     case "student" =>
-      $(n, \(parent(2))\courses\course(exists(\\(student(id(@@("id", n)))))))
+      $(n, \(parent(2))\courses\course(exists(\\(student(id == @@("id", n))))))
     case "tutor" =>
-      $(n, \(parent(2))\courses\course(tid(@@("id",n))))
+      $(n, \(parent(2))\courses\course(tid == @@("id",n)))
     case _ => empty
   }
 
   def tutorAxis : axis = n => n.label match {
     case "student" => $(n, \(courseAxis)\tutorAxis)
-    case "course" => $(n, \(parent(2))\tutors\tutor(id(@@("tid", n))))
+    case "course" => $(n, \(parent(2))\tutors\tutor(id == @@("tid", n)))
     case _ => empty
   }
 
@@ -41,7 +40,7 @@ object ManyToManyRelationExample extends XSPathLite {
                           \students
                           \student(?@("id", \(parent(2))
                                             \courses
-                                            \course(id(@@("id",n)))
+                                            \course(id == @@("id",n))
                                             \\student)))
     case _ => empty
   }
@@ -72,9 +71,9 @@ object ManyToManyRelationExample extends XSPathLite {
         </tutors>
       </department>
 
-    println($(department, \\(student(name("John")))\courseAxis) map @@("name"))
-    println($(department, \\(tutor(name("Jane")))\courseAxis) map @@("name"))
-    println($(department, \\(student(name("John")))\tutorAxis) map @@("name"))
-    println($(department, \\(tutor(name("Jane")))\studentAxis) map @@("name"))
+    println($(department, \\(student(name == "John"))\courseAxis) map @@("name"))
+    println($(department, \\(tutor(name == "Jane"))\courseAxis) map @@("name"))
+    println($(department, \\(student(name == "John"))\tutorAxis) map @@("name"))
+    println($(department, \\(tutor(name == "Jane"))\studentAxis) map @@("name"))
   }
 }

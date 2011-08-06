@@ -4,7 +4,7 @@ import _root_.xspath.XSPathLite
 
 object TreeTraversalWithIdReferencingExample extends XSPathLite {
 
-  val node = elem("node")
+  val node = Element("node")
   def node(p: Query): Query = node and p
   def name(text: String) = ?@("name", text)
   def id(txt: String) = ?@("id", txt)

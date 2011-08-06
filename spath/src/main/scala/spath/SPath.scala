@@ -1,5 +1,7 @@
 package spath
 
+import collection.mutable.Stack
+
 trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
 
   def parent: axis
@@ -52,7 +54,12 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
   def $(e: Query) : T => Iterable[T] = {
     if (!SPath(e))
       throw new Exception("SPath expression contains branching conflicts.")
-    evaluateWithoutCaching(e)
+    (o:T) => {
+      val r = evaluateWithoutCaching(e)(o);
+      if (depth == 0)
+        documentOrder(r, o)
+      else r
+    }
   }
 
   def $$(e: Query) : T => Iterable[T] = {
@@ -74,5 +81,36 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
     case e : Query => ?(n => $(n, e).size == 0)
   }
 
-  final def exists(e : Query) = ?(n => $(n, e).size > 0)
+  final def exists : Query => Predicate = (e : Query) => ?(n => $(n, e).size > 0)
+
+  def documentOrder(it : Iterable[T], o : T) : Iterable[T] = {
+    val map = documentOrder(o)
+    val order = (o:T, o1: T) => map(IdentityWrapper(o)) < map(IdentityWrapper(o1))
+    var result = List[T]()
+    result ++= it
+    result sortWith order
+  }
+
+  /**
+   * @return map each node in the tree rooted at o to its preorder document id.
+   */
+  def documentOrder(o : T) : Map[IdentityWrapper[T], Int] = {
+    var stack = Stack[T]()
+    var map = Map[IdentityWrapper[T], Int]()
+    stack push o
+    var id = 0
+    while (stack.size > 0) {
+      val item = stack pop()
+      map += IdentityWrapper(item) -> id
+      id += 1
+      for (o1 <- children(item).reverse) {
+        stack push o1
+      }
+    }
+    map
+  }
+
+    protected var depth = 0
+    override def startEvaluation = depth += 1
+    override def endEvaluation = depth -=  1
 }

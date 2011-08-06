@@ -1,7 +1,7 @@
 package spath
 
 import annotation.tailrec
-import collection.mutable.{HashMap, Stack, HashSet, Set, Map}
+import collection.mutable.{HashMap, HashSet, Set, Map}
 import collection.immutable.Iterable
 import collection.immutable.VectorBuilder
 
@@ -16,7 +16,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
     o => {
       for (node <- n.next(o))
-        map.put(node, List(o))
+        map += node -> List(o)
       startEvaluation
       val result = evaluate(map, List())
       endEvaluation
@@ -31,54 +31,66 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   private def evaluate(map: Map[Node, Iterable[T]],
                        result: Iterable[T]): Iterable[T] = {
 
-    if (map.keys.size == 0) return result
-    val newMap = new HashMap[Node, Iterable[T]]
-    var newResult = new VectorBuilder[T]
+    if (map.keys.size == 0) return distinct(result)
+    val newMap = HashMap[Node, Iterable[T]]()
+    var newResult = List[T]()
     for (q <- map.keys)
       map.get(q) match {
         case Some(ns) =>
           if (q.finalNode) newResult ++= ns
           else {
-            val children = ns.flatMap(q.uniqueAxis)
+            var n2 = distinct (ns flatMap q.uniqueAxis)
             for (q2 <- q.outgoing) {
-              val ns2 = children.filter(n => q2.isSatisfiedBy(n))
-              if (ns2.size > 0) newMap.put(q2, ns2)
+              val ns3 = n2 filter (n => q2 isSatisfiedBy n)
+              if (ns3.size > 0) newMap += q2 -> ns3
             }
           }
       }
-    evaluate(newMap, result ++ newResult.result)
+    evaluate(newMap, result ++ newResult)
   }
+
+  def distinct(it : Iterable[T]) : Iterable[T] = {
+    var distinctItems = Set[IdentityWrapper[T]]()
+    distinctItems ++= wrap(it)
+    val unwrapped = unwrap(distinctItems.toList)
+    unwrapped
+  }
+
+  def wrap(it : Iterable[T]) = it map (o => IdentityWrapper(o))
+  def unwrap(it : Iterable[IdentityWrapper[T]]) = it map (iw => iw.o)
+
+
 
   def evaluateWithCaching(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
-    val map = new HashMap[Node, Iterable[T]]
+    val map = HashMap[Node, Iterable[T]]()
 
     o => {
       for (node <- n.next(o))
         map.put(node, List(o))
       startEvaluation
-      val result = evaluateWithCache(map, List(), new VisitedStates)
+      val result = evaluateWithCache(map, List(), new Cache)
       endEvaluation
       result
     }
   }
 
-  private class VisitedStates {
-    val map: Map[Node, Set[IdentityWrapper[T]]] = new HashMap[Node, Set[IdentityWrapper[T]]]
+  private class Cache {
+    val map = HashMap[Node, Set[IdentityWrapper[T]]]()
 
-    def put(node: Node, objects: Iterable[T]) {
+    def remember(node: Node, objects: Iterable[T]) {
       var setOption = map.get(node)
       setOption match {
-        case Some(set) => set ++= objects.map(o => IdentityWrapper(o))
+        case Some(set) => set ++= wrap(objects)
         case None =>
-          val set = new HashSet[IdentityWrapper[T]]
-          set ++= objects.map(o => IdentityWrapper(o))
+          val set = HashSet[IdentityWrapper[T]]()
+          set ++= wrap(objects)
           map.put(node, set)
       }
     }
 
-    def contains(node: Node, o: T) =
+    def seen(node: Node, o: T) =
       map.get(node) match {
         case Some(set) => set.contains(IdentityWrapper(o))
         case _ => false
@@ -86,32 +98,29 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   @tailrec
-  private def evaluateWithCache(map: Map[Node, Iterable[T]], result: Iterable[T], visited: VisitedStates): Iterable[T] = {
+  private def evaluateWithCache(map: Map[Node, Iterable[T]], result: Iterable[T], cache: Cache): Iterable[T] = {
 
-    if (map.keys.size == 0) return result
-    val newMap = new HashMap[Node, Iterable[T]]
-    var newResult = new VectorBuilder[T]
-    for (node <- map.keys)
-      map.get(node) match {
-        case Some(set) =>
-          if (node.finalNode) newResult ++= set
+    if (map.keys.size == 0) return distinct(result)
+    val newMap = HashMap[Node, Iterable[T]]()
+    var newResult = List[T]()
+    for (q <- map.keys)
+      map.get(q) match {
+        case Some(ns) =>
+          if (q.finalNode) newResult ++= ns
           else {
-            val children = set.flatMap(node.uniqueAxis)
-            for (nextNode <- node.outgoing) {
-              val newSet = children.filter(o => nextNode.isSatisfiedBy(o))
-              if (newSet.size > 0) {
-                newMap.put(nextNode, newSet.filter(o => !visited.contains(nextNode, o)))
-                visited.put(nextNode, newSet)
+            val n2 = distinct(ns flatMap q.uniqueAxis)
+            for (q2 <- q.outgoing) {
+              val ns3 = n2 filter(o => q2 isSatisfiedBy o)
+              if (ns3.size > 0) {
+                newMap += q2 -> ns3.filter(o => !cache.seen(q2, o))
+                cache remember(q2, ns3)
               }
             }
           }
       }
-    evaluateWithCache(newMap, result ++ newResult.result, visited)
+    evaluateWithCache(newMap, result ++ newResult, cache)
   }
 
-  /**
-   * Implementation of Moshe, Wolper et al.
-   */
   private object Algorithm {
     var i = 0
 
@@ -211,8 +220,8 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       }
 
       markLoopNodes(ns, new HashSet[Node], 1, ns.size)
-      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
-      print(ns)
+//      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
+//      print(ns)
       i
     }
 
@@ -273,7 +282,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     }
 
     def next(o: T) = {
-      var result: Set[node] = new HashSet[node]
+      var result = Set[node]()
       nextAux(o, outgoing.toArray, 0, result)
       result
     }

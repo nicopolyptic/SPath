@@ -15,7 +15,7 @@ object Performance extends XSPathLite {
     new PrettyPrinter(1000, 3).format(root, sb)
     //   println(sb)
 
-    val A = elem("A")
+    val A = Element("A")
 
     val cache: Unit => Unit = _ => {
       val query = \\(A)
@@ -37,18 +37,18 @@ object Performance extends XSPathLite {
     }
 
 
-    println("SPath cache")
-    time(cache)
-    printMemoryUsage
+//    println("SPath cache")
+//    time(cache)
+//    printMemoryUsage
 
 
 //    println("Hand coded")
 //    time(hand)
 //    printMemoryUsage
 
-//    println("SPath no cache")
-//    time(nocache)
-//    printMemoryUsage
+    println("SPath no cache")
+    time(nocache)
+    printMemoryUsage
 
 //    println("Scala")
 //    time(scala)
