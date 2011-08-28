@@ -9,7 +9,9 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
   private def createGraph(e: Query): Node = Algorithm.createGraph(e)
 
-  def evaluateWithoutCaching(e: Query): T => Iterable[T] = {
+  var cacheDuringEvalution = true
+
+  def externalEvaluate(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
     val map = new HashMap[Node, Iterable[T]]
@@ -18,14 +20,18 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       for (node <- n.next(o))
         map += node -> List(o)
       startEvaluation
-      val result = evaluate(map, List())
+      var result : Iterable[T] = null
+      if (cacheDuringEvalution)
+        result = evaluateWithCache(map, List(), new Cache)
+      else
+        result = evaluate(map, List())
       endEvaluation
       result
     }
   }
 
-  protected def startEvaluation = {}
-  protected def endEvaluation = {}
+  protected def startEvaluation = ()
+  protected def endEvaluation = ()
 
   @tailrec
   private def evaluate(map: Map[Node, Iterable[T]],
@@ -58,23 +64,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
   def wrap(it : Iterable[T]) = it map (o => IdentityWrapper(o))
   def unwrap(it : Iterable[IdentityWrapper[T]]) = it map (iw => iw.o)
-
-
-
-  def evaluateWithCaching(e: Query): T => Iterable[T] = {
-    val n = createGraph(e)
-
-    val map = HashMap[Node, Iterable[T]]()
-
-    o => {
-      for (node <- n.next(o))
-        map.put(node, List(o))
-      startEvaluation
-      val result = evaluateWithCache(map, List(), new Cache)
-      endEvaluation
-      result
-    }
-  }
 
   private class Cache {
     val map = HashMap[Node, Set[IdentityWrapper[T]]]()
@@ -337,7 +326,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     def isSatisfiedBy(a: T): Boolean = {
       for (e <- old) {
         e match {
-          case p: Predicate => if (!p.apply(a)) return false
+          case p: Predicate => if (!p.evaluate(a)) return false
           case _ =>
         }
       }

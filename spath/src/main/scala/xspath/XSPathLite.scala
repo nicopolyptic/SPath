@@ -46,17 +46,22 @@ trait XSPathLite extends SPathLite[Node] {
 
   def @@(attributeName : String) : Node => String = n => @@(attributeName, n)
 
-  def exists(attributeName : String) = ?(n => ?@(attributeName, n) match {case None => false case Some(s) => true})
+  def exists(attributeName : String) : predicate = n => ?@(attributeName, n) match {case None => false case Some(s) => true}
 
-  class Attribute(name : String) {
-    def == (value : String) = Predicate(n => @@(name, n) == value)
+  class Attribute(name : String) extends Predicate(exists(name)) with Function[Node, String] {
+    def == (value : String) = Predicate(n => XSPathLite.this.@@(name, n) == value)
+    def @@ (n : Node) : String = XSPathLite.this.@@ (name, n)
+    override def apply(n:Node) : String = @@(n)
+    def on (e : Query) : Query = XSPathLite.this ?@(name, e)
   }
 
   object Attribute {
     def apply(name:String) = new Attribute(name)
   }
 
-  class Element(label : String) extends Predicate(element(label))
+  class Element(val label : String) extends Predicate(element(label)) with Function[Query, Query] {
+    override def apply(e:Query) :Query = e and this
+  }
 
   object Element {
     def apply(label: String) = new Element(label);

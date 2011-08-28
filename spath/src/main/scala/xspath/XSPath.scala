@@ -29,7 +29,7 @@ trait XSPath extends SPath[Node] {
 
   def text : Predicate = ?(n => n.getNodeType() == Node.TEXT_NODE)
   def text(data: String): Predicate =
-    ?(n => text.apply(n) && n.getNodeValue() == data)
+    ?(n => text.evaluate(n) && n.getNodeValue() == data)
 }
 
 

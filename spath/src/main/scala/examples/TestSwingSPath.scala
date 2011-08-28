@@ -26,7 +26,7 @@ object TestSwingSPath extends SwingSPath {
           val id = (o: Component) => scala.List(o)
           val f = * \\ (id, *)
 
-          var firstResult = $$(f)(cp)
+          var firstResult = $(f)(cp)
           for (o <- firstResult) o match {case c: TreeMapPanel => c.color = Color.green case _ =>}
 
         }

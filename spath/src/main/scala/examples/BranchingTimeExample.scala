@@ -8,7 +8,7 @@ object BranchingTimeExample extends XSPathLite {
   val B = Element("B")
   val C = Element("C")
   val D = Element("D")
-  def A(p:Query) : Query = p and A
+
   def main(args: Array[String]): Unit = {
 
     val doc =

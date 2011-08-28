@@ -17,7 +17,7 @@ object Format {
 
     val no = true
     //val r = new BufferedReader(new FileReader("C:\\Users\\nic\\IdeaProjects\\spath\\src\\main\\scala\\txt\\query"))
-    val r = new BufferedReader(new FileReader("C:\\Users\\nic\\IdeaProjects\\spath\\src\\main\\scala\\txt\\spath"))
+    val r = new BufferedReader(new FileReader("D:\\work\\github\\SPath\\spath\\src\\main\\scala\\examples\\EmployeesExample.scala"))
     //val r = new BufferedReader(new FileReader("C:\\Users\\nic\\IdeaProjects\\spath\\src\\main\\scala\\spath\\SPathLite.scala"))
     val start = 1
     var line : String  = null
@@ -29,6 +29,7 @@ object Format {
 
       line = line.replaceAll("\\\\","\\\\textbackslash")
       line = line.replace("$","\\$")
+      line = line.replace("~","$\\sim$")
       line = line.replaceAll("\\{","\\\\{")
       line = line.replaceAll("\\}","\\\\}")
       line = line.replaceAll(">","\\$>\\$")

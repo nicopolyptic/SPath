@@ -33,7 +33,7 @@ trait QueryExpression[T] {
   }
 
   case class Predicate(p: T => Boolean) extends Query {
-    def apply(n : T) = p(n)
+    def evaluate(n : T) = p(n)
     override def toString = "predicate"
   }
 

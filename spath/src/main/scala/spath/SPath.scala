@@ -21,14 +21,18 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
   final def nth(i: Int) = ?(n => position(n) == i)
 
   final val child = children
-  final val precedingSibling : axis = n => sibling(position(n) - 1)(n)
+  final val previousSibling : axis = n => sibling(position(n) - 1)(n)
   final val followingSibling : axis = n => sibling(position(n) + 1)(n)
   final val ancestorOrSelf = $(\\(parent))
   final val descendantOrSelf = $(\\(child))
   final val ancestor = $(\(parent)\\parent)
   final val descendant = $(\(child)\\child)
   final val following = $(\\(parent)\followingSibling\\followingSibling\\child)
-  final val preceding = $(\\(parent)\precedingSibling\\precedingSibling\\child)
+  final val previous = $(\\(parent)\previousSibling\\previousSibling\\child)
+
+  final def root : Predicate = ?(n => parent(n).size == 0)
+  final def ~\\ (e : Query)= \\(parent, root)\\e
+  final def ~\ (e : Query)= \\(parent, root)\e
 
   final val empty = new Vector[T](0, 0, 0)
 
@@ -49,23 +53,16 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
     }
 
   def $(n : T, e: Query) : Iterable[T] = $(e)(n)
-  def $$(n : T, e: Query) : Iterable[T] = $$(e)(n)
 
   def $(e: Query) : T => Iterable[T] = {
     if (!SPath(e))
       throw new Exception("SPath expression contains branching conflicts.")
     (o:T) => {
-      val r = evaluateWithoutCaching(e)(o);
+      val r = externalEvaluate(e)(o);
       if (depth == 0)
         documentOrder(r, o)
       else r
     }
-  }
-
-  def $$(e: Query) : T => Iterable[T] = {
-    if (!SPath(e))
-      throw new Exception("SPath expression contains branching conflicts.")
-    evaluateWithCaching(e)
   }
 
   final def compose(f: axis, n: Int, s: Iterable[T]): Iterable[T] =

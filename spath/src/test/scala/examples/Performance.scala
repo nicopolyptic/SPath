@@ -19,7 +19,7 @@ object Performance extends XSPathLite {
 
     val cache: Unit => Unit = _ => {
       val query = \\(A)
-      val result = $$(query)(root)
+      val result = $(query)(root)
       println(result.size)
     }
 
