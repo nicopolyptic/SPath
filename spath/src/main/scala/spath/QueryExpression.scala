@@ -4,7 +4,7 @@ trait QueryExpression[T] {
 
   type axis = T => Iterable[T]
   type predicate = T => Boolean
-  final def * = Predicate(_ => true)
+  def * = Predicate(_ => true)
   def defaultAxis: axis
   def SPath(e: Query) = Query.SPath(e)
   def exists : Query => Predicate

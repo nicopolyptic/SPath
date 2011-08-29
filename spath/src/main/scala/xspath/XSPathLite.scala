@@ -67,6 +67,9 @@ trait XSPathLite extends SPathLite[Node] {
     def apply(label: String) = new Element(label);
   }
 
+  def element : predicate = n => n match {case _: Elem => true case _ => false}
+  override def * = ?(element)
+
   def element(label: String) : predicate =
     n =>
       n match {

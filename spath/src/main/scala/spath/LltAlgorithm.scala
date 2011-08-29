@@ -22,9 +22,9 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       startEvaluation
       var result : Iterable[T] = null
       if (cacheDuringEvalution)
-        result = evaluateWithCache(map, List(), new Cache)
+        result = evaluate(map, List(), new Cache)
       else
-        result = evaluate(map, List())
+        result = evaluateWithoutCache(map, List())
       endEvaluation
       result
     }
@@ -34,7 +34,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   protected def endEvaluation = ()
 
   @tailrec
-  private def evaluate(map: Map[Node, Iterable[T]],
+  private def evaluateWithoutCache(map: Map[Node, Iterable[T]],
                        result: Iterable[T]): Iterable[T] = {
 
     if (map.keys.size == 0) return distinct(result)
@@ -52,7 +52,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
             }
           }
       }
-    evaluate(newMap, result ++ newResult)
+    evaluateWithoutCache(newMap, result ++ newResult)
   }
 
   def distinct(it : Iterable[T]) : Iterable[T] = {
@@ -87,7 +87,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   @tailrec
-  private def evaluateWithCache(map: Map[Node, Iterable[T]], result: Iterable[T], cache: Cache): Iterable[T] = {
+  private def evaluate(map: Map[Node, Iterable[T]], result: Iterable[T], cache: Cache): Iterable[T] = {
 
     if (map.keys.size == 0) return distinct(result)
     val newMap = HashMap[Node, Iterable[T]]()
@@ -97,9 +97,9 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
         case Some(ns) =>
           if (q.finalNode) newResult ++= ns
           else {
-            val n2 = distinct(ns flatMap q.uniqueAxis)
+            val ns2 = distinct(ns flatMap q.uniqueAxis)
             for (q2 <- q.outgoing) {
-              val ns3 = n2 filter(o => q2 isSatisfiedBy o)
+              val ns3 = ns2 filter(o => q2 isSatisfiedBy o)
               if (ns3.size > 0) {
                 newMap += q2 -> ns3.filter(o => !cache.seen(q2, o))
                 cache remember(q2, ns3)
@@ -107,7 +107,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
             }
           }
       }
-    evaluateWithCache(newMap, result ++ newResult, cache)
+    evaluate(newMap, result ++ newResult, cache)
   }
 
   private object Algorithm {
