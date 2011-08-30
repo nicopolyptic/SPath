@@ -21,14 +21,16 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
   final def nth(i: Int) = ?(n => position(n) == i)
 
   final val child = children
-  final val previousSibling : axis = n => sibling(position(n) - 1)(n)
-  final val followingSibling : axis = n => sibling(position(n) + 1)(n)
+  final val leftSibling : axis = n => sibling(position(n) - 1)(n)
+  final val rightSibling : axis = n => sibling(position(n) + 1)(n)
+  final val previousSibling : axis = $(\(leftSibling)\\leftSibling)
+  final val followingSibling : axis = $(\(followingSibling)\\followingSibling)
   final val ancestorOrSelf = $(\\(parent))
   final val descendantOrSelf = $(\\(child))
   final val ancestor = $(\(parent)\\parent)
   final val descendant = $(\(child)\\child)
-  final val following = $(\\(parent)\followingSibling\\followingSibling\\child)
-  final val previous = $(\\(parent)\previousSibling\\previousSibling\\child)
+  final val following = $(\\(parent)\rightSibling\\rightSibling\\child)
+  final val previous = $(\\(parent)\leftSibling\\leftSibling\\child)
 
   final def root : Predicate = ?(n => parent(n).size == 0)
   final def ~\\ (e : Query)= \\(parent, root)\\e
