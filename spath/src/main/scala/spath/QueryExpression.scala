@@ -7,6 +7,7 @@ trait QueryExpression[T] {
   def * = Predicate(_ => true)
   def defaultAxis: axis
   def SPath(e: Query) = Query.SPath(e)
+  def not : Query => Query
   def exists : Query => Predicate
 
   class Query {
@@ -52,6 +53,13 @@ trait QueryExpression[T] {
   case class X(val f: axis, val next: Query) extends Query {
     override def toString = "X ( " + next + " )"
   }
+
+  final def \\(f: axis, e: Query): Query = * U (f, e)
+  final def \(f: axis, e: Query): Query = X(f, e)
+  final def \\(f: axis): Query = \\(f, *)
+  final def \(f: axis): Query = \(f, *)
+  final def \(e: Query): Query = \(defaultAxis, e)
+  final def \\(e: Query): Query = \\(defaultAxis, e)
 
   private object Query {
     def SPath(e: Query): Boolean = {

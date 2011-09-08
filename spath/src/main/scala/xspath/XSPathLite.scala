@@ -76,4 +76,10 @@ trait XSPathLite extends SPathLite[Node] {
         case _: Elem => n.label == label
         case _ => false
       }
+
+  class EnhancedQuery(q:Query) {
+    def \\+ (q2 : Query) = q\(child)\\(child, q2)
+  }
+
+  implicit def enhancedQuery(q:Query) = new EnhancedQuery(q)
 }

@@ -11,7 +11,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
   var cacheDuringEvalution = true
 
-  def externalEvaluate(e: Query): T => Iterable[T] = {
+  def evaluate(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
     val map = new HashMap[Node, Iterable[T]]

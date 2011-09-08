@@ -4,14 +4,15 @@ trait QueryExpression[T] {
 
   type axis = T => Iterable[T]
   type predicate = T => Boolean
-  final def * = Predicate(_ => true)
+  def * = Predicate(_ => true)
   def defaultAxis: axis
+  def not : Query => Query
+  def exists : Query => Query
 
   class Query {
     def and(e: Query) = And(this, e)
     def or(e: Query) = Or(this, e)
     def U(f: axis, e: Query) = Until(f, this, e)
-
     def insert(e : Query) : Query =
         this match {
           case And(e1, e2) => And(e1, e2 insert e)
@@ -27,6 +28,7 @@ trait QueryExpression[T] {
     def \(f : axis) : Query = \(f, *)
     def \\(e : Query) : Query = \\(defaultAxis, e)
     def \(e : Query) : Query = \(defaultAxis, e)
+    def ?(e : Query) : Query = this and exists(e)
   }
 
   case class Predicate(p: T => Boolean) extends Query {
@@ -36,4 +38,11 @@ trait QueryExpression[T] {
   case class Or(val l: Query, val r: Query) extends Query
   case class Until(f: axis, val l: Query, val r: Query) extends Query
   case class X(f: axis, val next: Query) extends Query
+
+  def \\(f: axis, e: Query): Query = * U (f, e)
+  def \(f: axis, e: Query): Query = X(f, e)
+  def \\(f: axis): Query = \\(f, *)
+  def \(f: axis): Query = \(f, *)
+  def \(e: Query): Query = \(defaultAxis, e)
+  def \\(e: Query): Query = \\(defaultAxis, e)
 }

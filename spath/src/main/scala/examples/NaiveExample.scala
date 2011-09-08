@@ -27,8 +27,8 @@ object NaiveExample extends XSPathLite {
 
   def main(args: Array[String]): Unit = {
 
-    ///spath
-    scalaxml
+    spath
+    //scalaxml
   }
 
   def scalaxml = {
@@ -61,7 +61,7 @@ object NaiveExample extends XSPathLite {
       before = new Date()
 
       r = $(doc, q)
-//      println(r.size)
+      //println(r.size)
       after = new Date()
       println((after.getTime - before.getTime) / 1000d)
       q = q \\ *

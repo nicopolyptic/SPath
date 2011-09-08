@@ -65,5 +65,7 @@ object ManyToManyRelationExample extends XSPathLite {
     println($(department, \\(tutor(name == "Jane"))\courseAxis) map name)
     println($(department, \\(student(name == "John"))\tutorAxis) map name)
     println($(department, \\(tutor(name == "Jane"))\studentAxis) map name)
+
+    println($(department, * \\+(*)) map name)
   }
 }
