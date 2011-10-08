@@ -18,14 +18,14 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
 
   final val self : axis = n => List(n)
   final val child = children
-  final val previousSibling : axis = $(\(leftSibling)\\leftSibling)
-  final val followingSibling : axis = $(\(followingSibling)\\followingSibling)
-  final val ancestorOrSelf = $(\\(parent))
+  final val descendant = $(\(child)\\child)
   final val descendantOrSelf = $(\\(child))
   final val ancestor = $(\(parent)\\parent)
-  final val descendant = $(\(child)\\child)
+  final val ancestorOrSelf = $(\\(parent))
+  final val followingSibling : axis = $(\(followingSibling)\\followingSibling)
+  final val precedingSibling : axis = $(\(leftSibling)\\leftSibling)
   final val following = $(\\(parent)\rightSibling\\rightSibling\\child)
-  final val previous = $(\\(parent)\leftSibling\\leftSibling\\child)
+  final val preceding = $(\\(parent)\leftSibling\\leftSibling\\child)
 
   final def root : Predicate = ?(n => parent(n).size == 0)
   final def ~\\ (e : Query)= \\(parent, root)\\e
@@ -54,8 +54,9 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
   def $(e: Query) : T => Iterable[T] = {
     if (!SPath(e))
       throw new Exception("SPath expression contains branching conflicts.")
+    val q = buildAutomaton(e)
     (o:T) => {
-      val r = evaluate(e)(o);
+      val r = q(o);
       if (depth == 0)
         documentOrder(r, o)
       else r

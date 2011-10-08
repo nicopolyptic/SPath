@@ -11,7 +11,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
   var cacheDuringEvalution = true
 
-  def evaluate(e: Query): T => Iterable[T] = {
+  def buildAutomaton(e: Query): T => Iterable[T] = {
     val n = createGraph(e)
 
     val map = new HashMap[Node, Iterable[T]]
@@ -87,7 +87,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   @tailrec
-  private def evaluate(map: Map[Node, Iterable[T]], result: Iterable[T], cache: Cache): Iterable[T] = {
+  private def evaluate(map: Map[Node, Iterable[T]], result: List[T], cache: Cache): Iterable[T] = {
 
     if (map.keys.size == 0) return distinct(result)
     val newMap = HashMap[Node, Iterable[T]]()
@@ -99,9 +99,9 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
           else {
             val ns2 = distinct(ns flatMap q.uniqueAxis)
             for (q2 <- q.outgoing) {
-              val ns3 = ns2 filter(o => q2 isSatisfiedBy o)
+              val ns3 = ns2 filter(o => !cache.seen(q2, o) && q2.isSatisfiedBy(o))
               if (ns3.size > 0) {
-                newMap += q2 -> ns3.filter(o => !cache.seen(q2, o))
+                newMap += q2 -> ns3
                 cache remember(q2, ns3)
               }
             }

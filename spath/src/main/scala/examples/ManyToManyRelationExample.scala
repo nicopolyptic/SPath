@@ -1,6 +1,6 @@
 package examples
 
-import _root_.xspath.XSPathLite
+import xspath.XSPathLite
 
 object ManyToManyRelationExample extends XSPathLite {
 
@@ -66,6 +66,6 @@ object ManyToManyRelationExample extends XSPathLite {
     println($(department, \\(student(name == "John"))\tutorAxis) map name)
     println($(department, \\(tutor(name == "Jane"))\studentAxis) map name)
 
-    println($(department, * \\+(*)) map name)
+    println($(department, * \\+ *) map name)
   }
 }

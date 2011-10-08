@@ -1,6 +1,6 @@
 package examples
 
-import _root_.xspath.XSPathLite
+import xspath.XSPathLite
 
 object EmployeesExample extends XSPathLite {
 
@@ -11,7 +11,7 @@ object EmployeesExample extends XSPathLite {
   val manager : axis = n => $(n, \(parent)\employee(id == mgrId @@ n))
   val reports : axis = n => $(n, \(parent)\employee(mgrId == id @@ n))
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]) {
 
     val company =
       <company>
