@@ -9,7 +9,6 @@
     <modules>
         <module>spath</module>
         <module>swingspathlite</module>
-        <module>swtspath</module>
     </modules>
 
 
