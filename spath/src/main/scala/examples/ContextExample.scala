@@ -12,16 +12,10 @@ object ContextExample extends XSPathLite {
 
     val doc =
       <x>
-        <a id="1">
-            <b/>
-        </a>
-        <a id="2">
-            <b/>
-        </a>
+        <a id="1"><b/></a>
+        <a id="2"><b/></a>
         <a id="3"/>
-        <a id="4">
-            <b/>
-        </a>
+        <a id="4"><b/></a>
       </x>
 
     println($(doc, \\(a?(\(b)))$nth(3)))
