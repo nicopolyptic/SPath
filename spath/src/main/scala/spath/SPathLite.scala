@@ -15,14 +15,15 @@ trait SPathLite[T <: AnyRef] extends SPath[T] {
 
   override def parent = n => {
     val p = parentRelation.get(IdentityWrapper(n))
+
     p match {case Some(m) => List(m) case None => empty}
   }
 
-  private val parentRelation = new HashMap[IdentityWrapper[T],T]
+  protected val parentRelation = new HashMap[IdentityWrapper[T],T]
 
   override def endEvaluation = {
     super.endEvaluation
-    if (depth == 0)
+    if (depth == 0 && false) // TODO and the document being queried is not indexed
        parentRelation.clear
   }
 }

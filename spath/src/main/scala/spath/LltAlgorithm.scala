@@ -1,28 +1,38 @@
 package spath
 
 import annotation.tailrec
-import collection.mutable.{HashMap, HashSet, Set, Map}
 import collection.immutable.Iterable
-import collection.immutable.VectorBuilder
+import java.util.Date
+import collection.mutable._
 
 trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
 
-  private def createGraph(e: Query): Node = Algorithm.createGraph(e)
+  private def createGraph(e: Query): AutomatonNode = Algorithm.createGraph(e)
 
   var cacheDuringEvalution = true
 
-  def buildAutomaton(e: Query): T => Iterable[T] = {
-    val n = createGraph(e)
 
-    val map = new HashMap[Node, Iterable[T]]
+  var automata : Map[Query, AutomatonNode] = Map[Query, AutomatonNode]()
+
+  def buildAutomaton(e: Query): T => Iterable[T] = {
+
+    var n : AutomatonNode = null
+
+    automata.get(e) match {
+      case Some(node) => n = node
+      case None => n = createGraph(e); automata += e -> n
+    }
+
+//    val n = createGraph(e)
 
     o => {
+      val map = new HashMap[AutomatonNode, Iterable[T]]
       for (node <- n.next(o))
         map += node -> List(o)
       startEvaluation
       var result : Iterable[T] = null
       if (cacheDuringEvalution)
-        result = evaluate(map, List(), new Cache)
+        result = evaluate(map, ListBuffer[T](), new Cache)
       else
         result = evaluateWithoutCache(map, List())
       endEvaluation
@@ -34,11 +44,11 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   protected def endEvaluation = ()
 
   @tailrec
-  private def evaluateWithoutCache(map: Map[Node, Iterable[T]],
+  private def evaluateWithoutCache(map: Map[AutomatonNode, Iterable[T]],
                        result: Iterable[T]): Iterable[T] = {
 
     if (map.keys.size == 0) return distinct(result)
-    val newMap = HashMap[Node, Iterable[T]]()
+    val newMap = HashMap[AutomatonNode, Iterable[T]]()
     var newResult = List[T]()
     for (q <- map.keys)
       map.get(q) match {
@@ -55,20 +65,39 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     evaluateWithoutCache(newMap, result ++ newResult)
   }
 
-  def distinct(it : Iterable[T]) : Iterable[T] = {
-    var distinctItems = Set[IdentityWrapper[T]]()
-    distinctItems ++= wrap(it)
-    val unwrapped = unwrap(distinctItems.toList)
-    unwrapped
+  def distinct(it : scala.collection.Traversable[T]) : Iterable[T] = {
+    var set = Set[IdentityWrapper[T]]()
+    var result = ListBuffer[T]()
+    for (o <- it) {
+      val iw = IdentityWrapper(o)
+      if (!set.contains(iw)) {
+        result += iw.o
+        set += iw
+      }
+    }
+    result.toList
   }
+
+//  def distinct(it : Traversable[T]) : Iterable[T] = {
+//    var set = Set[IdentityWrapper[T]]()
+//    var result = ListBuffer[T]()
+//    for (o <- it) {
+//      val iw = IdentityWrapper(o)
+//      if (!set.contains(iw)) {
+//        result += iw.o
+//        set += iw
+//      }
+//    }
+//    result.toList
+//  }
 
   def wrap(it : Iterable[T]) = it map (o => IdentityWrapper(o))
   def unwrap(it : Iterable[IdentityWrapper[T]]) = it map (iw => iw.o)
 
   private class Cache {
-    val map = HashMap[Node, Set[IdentityWrapper[T]]]()
+    val map = HashMap[AutomatonNode, Set[IdentityWrapper[T]]]()
 
-    def remember(node: Node, objects: Iterable[T]) {
+    def remember(node: AutomatonNode, objects: Iterable[T]) {
       var setOption = map.get(node)
       setOption match {
         case Some(set) => set ++= wrap(objects)
@@ -79,7 +108,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       }
     }
 
-    def seen(node: Node, o: T) =
+    def seen(node: AutomatonNode, o: T) =
       map.get(node) match {
         case Some(set) => set.contains(IdentityWrapper(o))
         case _ => false
@@ -87,27 +116,30 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   @tailrec
-  private def evaluate(map: Map[Node, Iterable[T]], result: List[T], cache: Cache): Iterable[T] = {
-
+  private def evaluate(map: Map[AutomatonNode, Iterable[T]], result: ListBuffer[T], cache: Cache): Iterable[T] = {
     if (map.keys.size == 0) return distinct(result)
-    val newMap = HashMap[Node, Iterable[T]]()
-    var newResult = List[T]()
-    for (q <- map.keys)
-      map.get(q) match {
-        case Some(ns) =>
-          if (q.finalNode) newResult ++= ns
-          else {
-            val ns2 = distinct(ns flatMap q.uniqueAxis)
-            for (q2 <- q.outgoing) {
-              val ns3 = ns2 filter(o => !cache.seen(q2, o) && q2.isSatisfiedBy(o))
-              if (ns3.size > 0) {
-                newMap += q2 -> ns3
-                cache remember(q2, ns3)
-              }
-            }
+    val newMap = HashMap[AutomatonNode, Iterable[T]]()
+    for ((q,ns) <- map.iterator) {
+      if (q.finalNode) result ++= ns
+      else {
+        val ns2 = ns flatMap q.uniqueAxis
+        for (q2 <- q.outgoing) {
+          val ns3 = ns2 filter(o => !cache.seen(q2, o) && q2.isSatisfiedBy(o))
+          if (ns3.size > 0) {
+            val d = distinct(ns3)
+            newMap += q2 -> d
+            cache remember(q2, d)
           }
+        }
       }
-    evaluate(newMap, result ++ newResult, cache)
+    }
+    evaluate(newMap, result, cache)
+  }
+
+  var before = new Date
+  def start = before = new Date()
+  def end(s : String) {
+     println(s + " " + new Date(new Date().getTime - before.getTime).getTime/ 1000D)
   }
 
   private object Algorithm {
@@ -119,7 +151,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       k.toString
     }
 
-    def expand(n: Node, nl: Set[Node]): Set[Node] = {
+    def expand(n: AutomatonNode, nl: Set[AutomatonNode]): Set[AutomatonNode] = {
       if (n.New.size == 0) {
         var nd = n.findNode5(nl)
 
@@ -132,7 +164,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
           if (n.next.size > 0) {
             // skip the very last state with the infinite loop.
 
-            var newn = new Node(newName)
+            var newn = new AutomatonNode(newName)
             newn.incoming += n
             newn.New ++= n.next
             return expand(newn, nl)
@@ -165,7 +197,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
             n.next += x.next
             return expand(n, nl)
           case _ =>
-            var n1 = new Node(newName)
+            var n1 = new AutomatonNode(newName)
             n1.New += n.new1(eta)
             n1.New --= n.old
             n1.New ++= n.New
@@ -179,7 +211,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
               case None =>
             }
 
-            var n2 = new Node(newName)
+            var n2 = new AutomatonNode(newName)
             n2.New += n.new2(eta)
             n2.New --= n.old
             n2.New ++= n.New
@@ -193,28 +225,33 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       }
     }
 
-    def createGraph(e: Query): Node = {
+    def createGraph(e: Query): AutomatonNode = {
 
-      val n = new Node(newName)
-      val i = new Node("init")
+      val n = new AutomatonNode(newName)
+      val i = new AutomatonNode("init")
       n.incoming += i
       n.New += e
-      val ns = expand(n, new HashSet[Node])
+      val ns = expand(n, new HashSet[AutomatonNode])
+
+      var positions = Map[Predicate, Int]()
+      Query.label(e, 0, positions)
 
       for (n <- ns) {
         for (i <- n.incoming)
           i.outgoing += n
         n.uniqueAxis = n.findUniqueAxis()
         n.finalNode = n.next.size == 0
+        n.predicates ++=
+          n.old.filter(e => e match{case p:Predicate => true case _ => false}).map(e => e match{case p:Predicate=> p}).toList.sortWith((p1, p2) => positions(p1) < positions(p2))
       }
 
-      markLoopNodes(ns, new HashSet[Node], 1, ns.size)
+      markLoopNodes(ns, new HashSet[AutomatonNode], 1, ns.size)
 //      println("*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=--=*=")
 //      print(ns)
       i
     }
 
-    private def markLoopNodes(nodes: Set[Node], visited: Set[Node], length: Int, numberOfNodes: Int) {
+    private def markLoopNodes(nodes: Set[AutomatonNode], visited: Set[AutomatonNode], length: Int, numberOfNodes: Int) {
 
       for (n <- nodes) if (visited.contains(n)) n.loop = true
 
@@ -222,15 +259,15 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
         markLoopNodes(nodes.flatMap(o => o.outgoing), visited ++ nodes, length + 1, numberOfNodes)
     }
 
-    private def print(l: Set[Node]) {
+    private def print(l: Set[AutomatonNode]) {
       for (n <- l)
         n.print;
       println("")
     }
   }
 
-  private class Node(val name: String) {
-    type node = Node
+  class AutomatonNode(val name: String) {
+    type node = AutomatonNode
     type expr = Query
 
     val incoming: Set[node] = new HashSet[node]
@@ -238,6 +275,8 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     val old: Set[expr] = new HashSet[expr]
     val next: Set[expr] = new HashSet[expr]
     val outgoing = new HashSet[node]
+
+    var predicates = List[Predicate]()
 
     var uniqueAxis: axis = null
     var finalNode: Boolean = false
@@ -324,19 +363,22 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     }
 
     def isSatisfiedBy(a: T): Boolean = {
-      for (e <- old) {
-        e match {
-          case p: Predicate => if (!p.evaluate(a)) return false
-          case _ =>
-        }
+      for (p <- predicates) {
+        if (!p.evaluate(a)) return false
       }
+
+//        e match {
+//          case p: Predicate => if (!p.evaluate(a)) return false
+//          case _ =>
+//        }
+//      }
       return true
     }
 
     override def hashCode = name.hashCode
 
     override def equals(that: Any) = that match {
-      case other: Node => other.name.equals(this.name)
+      case other: AutomatonNode => other.name.equals(this.name)
     }
   }
 }

@@ -1,5 +1,7 @@
 package spath
 
+import com.sun.org.apache.xpath.internal.axes.AxesWalker
+
 trait QueryExpression[T] {
 
   type axis = T => Iterable[T]
@@ -9,6 +11,8 @@ trait QueryExpression[T] {
   def SPath(e: Query) = Query.SPath(e)
   def not : Query => Query
   def exists : Query => Predicate
+
+  def orderedEval : (T, Query) => Iterable[T]
 
   class Query {
     def and(e: Query) = And(this, e)
@@ -29,8 +33,35 @@ trait QueryExpression[T] {
     def \\(f : axis) : Query = \\(f, *)
     def \(f : axis) : Query = \(f, *)
     def \\(e : Query) : Query = \\(defaultAxis, e)
+    def \\*\(e : Query) : Query = \\(defaultAxis, *)\(e)
+    def \*\(e : Query) : Query = \(defaultAxis, *)\(e)
+    def \\*\\(e : Query) : Query = \\(defaultAxis, *)\\(e)
+    def \*\\(e : Query) : Query = \(defaultAxis, *)\\(e)
+    def \* : Query = \(defaultAxis, *)
+    def \\* : Query = \\(defaultAxis, *)
+    def \->(f : axis, e : Query) = this insert X(f, not(e) U (f, e))
+
     def \(e : Query) : Query = \(defaultAxis, e)
-    def ?(e : Query) : Query = this and exists(e)
+    def ?(e : Query) : Query = this insert exists(e)
+    def ?(p : predicate) : Query = this insert exists(Predicate(p))
+
+    def \(a : Axis) : Query = this\(a.f)
+    def \\(a : Axis) : Query = this\\(a.f)
+
+    def $context(f : contextFilter) : Axis = Axis(n => f(orderedEval(n, this)))
+    def $size(i:Int) : Predicate = $context((s:Int) => s == i)
+
+    def $range(from : Int, to : Int) : Axis = $context((s:Iterable[T]) => s.slice(from -1, to))
+    def $slice(inLeft : Int, inRight : Int) = $context((s:Iterable[T]) => s.slice(inLeft, s.size - inRight))
+    def $head(n : Int) = $range(1, n)
+    def $tail(n : Int) = $context((s:Iterable[T]) => s.slice(n-1,s.size))
+    def $ltrim(n : Int) : Axis = $slice(n,0)
+    def $rtrim(n : Int) : Axis = $slice(0,n)
+    def $nth(i : Int) : Axis = $range(i,i)
+    def $first = $head(1)
+    def $last = $context((s:Iterable[T]) => s.slice(s.size-1,s.size))
+    def $nth(f : Int => Int) : Axis = $context((s:Iterable[T]) => {val i = f(s.size);s.slice(i-1, i)})
+    def $context(f: Int => Boolean) : Predicate = Predicate(n => f(orderedEval(n, this).size))
   }
 
   case class Predicate(p: T => Boolean) extends Query {
@@ -60,8 +91,22 @@ trait QueryExpression[T] {
   final def \(f: axis): Query = \(f, *)
   final def \(e: Query): Query = \(defaultAxis, e)
   final def \\(e: Query): Query = \\(defaultAxis, e)
+  def \->(f : axis, e : Query) = X(f, not(e) U (f, e))
 
-  private object Query {
+  case class Axis(val f : axis) extends Query {
+
+    def toQuery :Query = QueryExpression.this.\(f)
+    override def \(f1 : axis, e:Query) : Query = toQuery\(f1, e)
+    override def \\(f1 : axis, e:Query) : Query = toQuery\\(f1, e)
+    override def ?(e:Query) : Query = toQuery?(e)
+    override def $context(cf : contextFilter) : Axis = Axis(n => cf(orderedEval(n, QueryExpression.this.\(this.f))))
+    override def toString = "Axis " + f
+  }
+
+  type contextFilter = Iterable[T] => Iterable[T]
+  type contextPredicate = Iterable[T] => Boolean
+
+  object Query {
     def SPath(e: Query): Boolean = {
       e match {
         case _: Predicate => true
@@ -69,6 +114,7 @@ trait QueryExpression[T] {
         case And(l, r) => (hasNoAxes(l)&& SPath(r)) || (SPath(l) && hasNoAxes(r))
         case X(_, next) => SPath(next)
         case Until(_, l, r) => hasNoAxes(l) && SPath(r)
+        case Axis(_) => throw new Exception("Evaluation of Axis is not currently allowed. Please convert to a query with Axis.toQuery")
       }
     }
 
@@ -79,6 +125,18 @@ trait QueryExpression[T] {
         case And(l, r) => hasNoAxes(l) && hasNoAxes(r)
         case X(_, next) => false
         case Until(_, l, r) => false
+        case Axis(_) => throw new Exception("Evaluation of Axis is not currently allowed. Please convert to a query with Axis.toQuery")
+      }
+    }
+
+    def label(e: Query, i: Int, positions : scala.collection.mutable.Map[Predicate, Int]) : Int = {
+      e match {
+        case p: Predicate => positions += p -> i; i+1
+        case And(e1, e2) => label(e2, label(e1, i, positions), positions)
+        case Or(e1, e2) => label(e2, label(e1, i, positions), positions)
+        case Until(_, e1, e2) => label(e2, label(e1, i, positions), positions)
+        case X(_, e) => label(e, i, positions)
+        case Axis(_) => throw new Exception("Evaluation of Axis is not currently allowed. Please convert to a query with Axis.toQuery")
       }
     }
   }

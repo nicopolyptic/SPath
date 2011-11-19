@@ -39,7 +39,7 @@ object TestSwingSPath extends SwingSPath {
 
         } else  if (true) {
 
-          val query = \(descendants(3), nth(1)\(following, nth(2)))
+          val query = \(descendants(3), nth(2)\(following, nth(3)))
           var result = $(query)(cp)
           for (o <- result) o match {case c: TreeMapPanel => c.color = Color.green case _ =>}
 
