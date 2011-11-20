@@ -23,8 +23,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       case None => n = createGraph(e); automata += e -> n
     }
 
-//    val n = createGraph(e)
-
     o => {
       val map = new HashMap[AutomatonNode, Iterable[T]]
       for (node <- n.next(o))
@@ -77,19 +75,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     }
     result.toList
   }
-
-//  def distinct(it : Traversable[T]) : Iterable[T] = {
-//    var set = Set[IdentityWrapper[T]]()
-//    var result = ListBuffer[T]()
-//    for (o <- it) {
-//      val iw = IdentityWrapper(o)
-//      if (!set.contains(iw)) {
-//        result += iw.o
-//        set += iw
-//      }
-//    }
-//    result.toList
-//  }
 
   def wrap(it : Iterable[T]) = it map (o => IdentityWrapper(o))
   def unwrap(it : Iterable[IdentityWrapper[T]]) = it map (iw => iw.o)

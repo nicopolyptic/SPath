@@ -91,7 +91,7 @@ trait QueryExpression[T] {
   final def \(f: axis): Query = \(f, *)
   final def \(e: Query): Query = \(defaultAxis, e)
   final def \\(e: Query): Query = \\(defaultAxis, e)
-  def \->(f : axis, e : Query) = X(f, not(e) U (f, e))
+  final def \->(f : axis, e : Query) = X(f, not(e) U (f, e))
 
   case class Axis(val f : axis) extends Query {
 

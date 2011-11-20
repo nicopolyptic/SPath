@@ -84,8 +84,8 @@ trait XSPathLite extends SPathLite[Node] {
     def apply(name:String) = new Attribute(name)
   }
 
-  class Element(val label : String) extends Predicate(element(label)) with Function[Query, Query] {
-    override def apply(e:Query) :Query = e and this
+  class Element(val label : String) extends Predicate(element(label)) with Function[Predicate, Query] {
+    override def apply(e:Predicate) :Query = e and this
   }
 
   object Element {
@@ -169,17 +169,7 @@ trait XSPathLite extends SPathLite[Node] {
     case None => empty
   }
 
-  def $id(e : Element) : axis = n =>
-
-    n.attributes.asAttrMap.get(e.label) match {
-      case Some(label) =>
-        idIndex.get (label) match  {
-          case Some(o) => List(o)
-          case None =>  empty
-        }
-      case None => empty
-    }
-
+  def $id(e : Element) : axis = $id(Attribute(e.label))
 
   override val following : axis = n => {
     val doc = $(n, \\(parent, root)).head

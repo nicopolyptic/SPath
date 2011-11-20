@@ -29,7 +29,7 @@ object BranchingTimeExample extends XSPathLite {
    $(doc, query)
 
 
-   query = \\(A(\(B) or \(parent, C)))\D
+   query = \\(A?(\(B) or \(parent, C)))\D
        $(doc, query)
 
    query = \\(A ?(\(B) or \(parent, C))) \ D

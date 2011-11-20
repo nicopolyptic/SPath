@@ -65,7 +65,7 @@ object XpathMarkExamples extends XSPathLite {
   val to = Attribute("to")
 
   val doc = scala.xml.XML.loadFile("D:\\work\\xmark\\doc.xml")
-  //val testdoc = scala.xml.XML.loadFile("D:\\work\\xmark\\doc4.txt")
+  val testdoc = scala.xml.XML.loadFile("D:\\work\\xmark\\doc4.txt")
 
   val xpath = xPath
   val dom = domDoc
@@ -152,20 +152,21 @@ object XpathMarkExamples extends XSPathLite {
   val A1_SPath = site\closed_auctions\closed_auction\annotation\description\text\keyword
   val A2_SPath = \\(closed_auction)\\keyword
   val A3_SPath = site\closed_auctions\closed_auction\\keyword
-  val A4_SPath = site\closed_auctions\closed_auction ? (\(annotation)\description\text\keyword)\date
+  val A4_SPath = site\closed_auctions\closed_auction?(\(annotation)\description\text\keyword)\date
   val A5_SPath = site\closed_auctions\closed_auction?(\\(keyword))\date
   val A6_SPath = site\people\person?(\(profile)\gender)?(\(profile)\age)\name
   val A7_SPath = site\people\person?(\(phone or homepage))\name
   val A8_SPath = site\people\person?(\(address))?(\(phone or homepage))?(\(creditcard or profile))\name
   val B1_SPath = site\regions\*\item?(\(parent, namerica or samerica))\name
   val B2_SPath = \\(keyword)\(ancestor, listitem)\text\keyword
-  val B3_SPath = site\open_auctions\open_auction\(\(bidder) $rtrim(1))
-  val B4_SPath = site\open_auctions\open_auction\(\(bidder) $ltrim(1))
+  val B3_SPath = site\open_auctions\open_auction\(\(bidder)$rtrim(1))
+  val B4_SPath = site\open_auctions\open_auction\(\(bidder)$ltrim(1))
   val B5_SPath = site\regions\*\item $rtrim(1)\name
   val B6_SPath = site\regions\*\item $ltrim(1)\name
   val B7_SPath = \\(person?(\(profile(income))))\name
   val B8_SPath = site\open_auctions\open_auction(\(bidder)$size(1))\interval
-  val C1_SPath = site\people\person?(\(profile)\age >= 18 and ?(\(profile(income < 10000)))  and ?(\(address)\city <> "Dallas"))\name
+  val C1_SPath = site\people\person?(\(profile)\age >= 18 and ?(\(profile(income < 10000)))
+    and ?(\(address)\city <> "Dallas"))\name
   val C2_SPath = site\open_auctions\open_auction?(\(bidder)\increase join \(current))\interval
   val C4_SPath = site\people\person(id on (person_id, \(watches)\watch\$id(open_auction)\seller))\name
   val C5_SPath = \\(id == "person0")
@@ -174,12 +175,14 @@ object XpathMarkExamples extends XSPathLite {
   val D1_SPath = site\open_auctions\open_auction(\(bidder)$context((s:Int) => s % 2 == 0))\interval
   val D2_SPath = \\(text or bold or emph or keyword)
   val E1_SPath = site\open_auctions\open_auction?(
-    ((\(bidder)$nth(1)\increase) < (\(bidder)$nth((s:Int) => (s+1)/2)\increase))
-      and ((\(bidder)$nth((s:Int) => (s+1)/2)\increase) < (\(bidder)$nth((s:Int) => s) \ increase))
+    (((\(bidder)$first)\increase) < (\(bidder)$nth((s:Int) => (s+1)/2)\increase))
+      and ((\(bidder)$nth((s:Int) => (s+1)/2)\increase) < ((\(bidder)$last)\increase))
     )\interval
+
   val E2_SPath = site\regions\europe\item\description\(\(descendant, keyword)$first)
   val E3_SPath = \\(keyword)\(\(ancestor, listitem)$last)\text\keyword
-  val E4_SPath = site\open_auctions\open_auction\bidder?(\->(leftSibling,bidder)\increase <= \(increase) and \(increase) <= \->(rightSibling,bidder)\increase)
+  val E4_SPath = site\open_auctions\open_auction\bidder?(
+    \->(leftSibling,bidder)\increase <= \(increase) and \(increase) <= \->(rightSibling,bidder)\increase)
   val E5_SPath = site\regions\*\item $ltrim(100)$rtrim(100)\name
   val F1_SPath = \\(bidder)?(\(increase) <= 10 and \->(rightSibling, bidder and \(increase) > 10))
   val F2_SPath = \\(bidder)?(\(increase) <= 10 and \->(leftSibling, bidder and \(increase) > 10))
@@ -189,11 +192,15 @@ object XpathMarkExamples extends XSPathLite {
   val F4_SPath = site\open_auctions\open_auction $range(1,5)\\F4axis\interval
   val F5axis = $(\(watches)\watch\$id(open_auction)\bidder\personref\$id(person))
   val F5_SPath = site\people\person $range(1,5)\\F5axis\name
-  val F7axis : axis = n => $(n, ~\(catgraph)\edge?(from == to @@ n))
+  val F7axis : axis = n => $(n, ~\(catgraph)\edge(from == to @@ n))
   val F7_SPath = site\catgraph\edge(from == "category0")\\F7axis\$id(to)
 
   def main(args: Array[String]) {
     index (doc)
+
+    println($(doc, \\(person)).size)
+    println($(doc, \\(bidder)).size)
+    println($(doc, \\(open_auction)).size)
 
     execute(A1_SPath, "A1_SPath");
     execute(A2_SPath, "A2_SPath");
@@ -298,9 +305,6 @@ object XpathMarkExamples extends XSPathLite {
     }
     println("")
 
-//    println($(doc, \\(person)).size)
-//    println($(doc, \\(bidder)).size)
-//    println($(doc, \\(open_auction)).size)
 
     removeIndex(doc)
     printMemoryUsage
