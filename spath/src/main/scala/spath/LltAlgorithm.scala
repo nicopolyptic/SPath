@@ -107,13 +107,12 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
     for ((q,ns) <- map.iterator) {
       if (q.finalNode) result ++= ns
       else {
-        val ns2 = ns flatMap q.uniqueAxis
+        val ns2 = distinct(ns flatMap q.uniqueAxis)
         for (q2 <- q.outgoing) {
           val ns3 = ns2 filter(o => !cache.seen(q2, o) && q2.isSatisfiedBy(o))
           if (ns3.size > 0) {
-            val d = distinct(ns3)
-            newMap += q2 -> d
-            cache remember(q2, d)
+            newMap += q2 -> ns3
+            cache remember(q2, ns3)
           }
         }
       }
