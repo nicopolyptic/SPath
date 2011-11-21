@@ -51,16 +51,16 @@ trait QueryExpression[T] {
     def $context(f : contextFilter) : Axis = Axis(n => f(orderedEval(n, this)))
     def $size(i:Int) : Predicate = $context((s:Int) => s == i)
 
-    def $range(from : Int, to : Int) : Axis = $context((s:Iterable[T]) => s.slice(from -1, to))
-    def $slice(inLeft : Int, inRight : Int) = $context((s:Iterable[T]) => s.slice(inLeft, s.size - inRight))
+    def $range(from : Int, to : Int) : Axis = $context((s:Iterable[T]) => s.view(from -1, to))
+    def $view(inLeft : Int, inRight : Int) = $context((s:Iterable[T]) => s.view(inLeft, s.size - inRight))
     def $head(n : Int) = $range(1, n)
-    def $tail(n : Int) = $context((s:Iterable[T]) => s.slice(n-1,s.size))
-    def $ltrim(n : Int) : Axis = $slice(n,0)
-    def $rtrim(n : Int) : Axis = $slice(0,n)
+    def $tail(n : Int) = $context((s:Iterable[T]) => s.view(n-1,s.size))
+    def $ltrim(n : Int) : Axis = $view(n,0)
+    def $rtrim(n : Int) : Axis = $view(0,n)
     def $nth(i : Int) : Axis = $range(i,i)
     def $first = $head(1)
-    def $last = $context((s:Iterable[T]) => s.slice(s.size-1,s.size))
-    def $nth(f : Int => Int) : Axis = $context((s:Iterable[T]) => {val i = f(s.size);s.slice(i-1, i)})
+    def $last = $context((s:Iterable[T]) => s.view(s.size-1,s.size))
+    def $nth(f : Int => Int) : Axis = $context((s:Iterable[T]) => {val i = f(s.size);s.view(i-1, i)})
     def $context(f: Int => Boolean) : Predicate = Predicate(n => f(orderedEval(n, this).size))
   }
 
