@@ -64,8 +64,7 @@ object XpathMarkExamples extends XSPathLite {
   val from = Attribute("from")
   val to = Attribute("to")
 
-  val doc = scala.xml.XML.loadFile("D:\\work\\xmark\\doc.xml")
-  val testdoc = scala.xml.XML.loadFile("D:\\work\\xmark\\doc4.txt")
+  val doc = scala.xml.XML.load(this.getClass().getResourceAsStream("/doc.xml"))
 
   val xpath = xPath
   val dom = domDoc
@@ -148,6 +147,9 @@ object XpathMarkExamples extends XSPathLite {
   val E7_XPath = "/site/regions/*/item[contains(substring-before(description, \"eros\"), \"passion\") and contains(substring-after(description, \"eros\"), \"dangerous\")]/name"
   //E8 Items with a long description {string processing}
   val E8_XPath = "/site/regions/*/item[string-length(translate(normalize-space(description),\" \",\"\")) > 10000]/name"
+
+  val B3_SPath2 = site\open_auctions\open_auction\bidder?(\(followingSibling, bidder))
+  val B4_SPath2 = site\open_auctions\open_auction\bidder?(\(precedingSibling, bidder))
 
   val A1_SPath = site\closed_auctions\closed_auction\annotation\description\text\keyword
   val A2_SPath = \\(closed_auction)\\keyword
