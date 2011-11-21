@@ -174,7 +174,7 @@ trait XSPathLite extends SPathLite[Node] {
   override val following : axis = n => {
     val doc = $(n, \\(parent, root)).head
     inverseDocIds.get(doc) match {
-      case Some(index) => index.drop(docIds(doc)(IdentityWrapper(n)) + 1)
+      case Some(index) => val i = docIds(doc)(IdentityWrapper(n));  index.view(i, docIds(doc).size)
       case None => super.following(n)
     }
   }
@@ -182,7 +182,7 @@ trait XSPathLite extends SPathLite[Node] {
   override val preceding : axis = n => {
     val doc = $(n, \\(parent, root)).head
     inverseDocIds.get(doc) match {
-      case Some(index) => index.dropRight(index.size - docIds(doc)(IdentityWrapper(n)))
+      case Some(index) => val i = docIds(doc)(IdentityWrapper(n));  index.view(0, i)
       case None => super.preceding(n)
     }
   }
