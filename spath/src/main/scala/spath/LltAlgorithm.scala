@@ -77,18 +77,18 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   def wrap(it : Iterable[T]) = it map (o => IdentityWrapper(o))
-  def unwrap(it : Iterable[IdentityWrapper[T]]) = it map (iw => iw.o)
 
   private class Cache {
-    val map = HashMap[AutomatonNode, Set[IdentityWrapper[T]]]()
+    val map = scala.collection.mutable.HashMap[AutomatonNode, Set[IdentityWrapper[T]]]()
 
     def remember(node: AutomatonNode, objects: Iterable[T]) {
       var setOption = map.get(node)
       setOption match {
-        case Some(set) => set ++= wrap(objects)
+        case Some(set) =>
+          for (o <- objects) set += IdentityWrapper(o)
         case None =>
-          val set = HashSet[IdentityWrapper[T]]()
-          set ++= wrap(objects)
+          val set = new scala.collection.mutable.HashSet[IdentityWrapper[T]]()
+          for (o <- objects) set += IdentityWrapper(o)
           map.put(node, set)
       }
     }
@@ -217,7 +217,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       n.New += e
       val ns = expand(n, new HashSet[AutomatonNode])
 
-      var positions = Map[Predicate, Int]()
+      var positions = HashMap[Predicate, Int]()
       Query.label(e, 0, positions)
 
       for (n <- ns) {
