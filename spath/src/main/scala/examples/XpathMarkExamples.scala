@@ -195,7 +195,11 @@ object XpathMarkExamples extends XSPathLite {
   val F5axis = $(\(watches)\watch\$id(open_auction)\bidder\personref\$id(person))
   val F5_SPath = site\people\person $range(1,5)\\F5axis\name
   val F7axis : axis = n => $(n, ~\(catgraph)\edge(from == to @@ n))
-  val F7_SPath = site\catgraph\edge(from == "category0")\\F7axis\$id(to)
+  val F7_SPath = site\catgraph\edge(from == "category0")\\F7axis\$id(to)\name
+
+  val incategory = Element("incategory")
+  val category = Element("category")
+  val G1_SPath = site\people\person\watches\watch\$id(open_auction)\itemref\$id(item)\incategory\$id(category)\name
 
   def main(args: Array[String]) {
     index (doc)
