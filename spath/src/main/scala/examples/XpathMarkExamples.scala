@@ -395,7 +395,7 @@ object XpathMarkExamples extends XSPathLite {
   def domDoc = {
     val docfactory = DocumentBuilderFactory.newInstance();
     val builder = docfactory.newDocumentBuilder();
-    builder.parse("D:\\work\\xmark\\doc.xml");
+    builder.parse(this.getClass().getResourceAsStream("/doc.xml"));
   }
 
   def printMemoryUsage = {
