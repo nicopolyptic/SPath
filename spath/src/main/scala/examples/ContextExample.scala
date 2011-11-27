@@ -20,5 +20,16 @@ object ContextExample extends XSPathLite {
 
     println($(doc, \\(a?(\(b)))$nth(3)))
     println($(doc, \\(a)$nth(3)?(\(b))))
+
+
+    val doc2 =
+      <a>
+        <a><b/><b/></a>
+        <a><b/><b/><b/></a>
+        <a></a>
+        <a><b/></a>
+      </a>
+
+    println($(doc2, \\(a?(\(b)$size(3)))))
   }
 }
