@@ -225,7 +225,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
           i.outgoing += n
         n.uniqueAxis = n.findUniqueAxis()
         n.finalNode = n.next.size == 0
-        n.predicates ++=
+        n.predicates =
           n.old.filter(e => e match{case p:Predicate => true case _ => false}).map(e => e match{case p:Predicate=> p}).toList.sortWith((p1, p2) => positions(p1) < positions(p2))
       }
 
