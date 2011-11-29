@@ -1,7 +1,5 @@
 package spath
 
-import com.sun.org.apache.xpath.internal.axes.AxesWalker
-
 trait QueryExpression[T] {
 
   type axis = T => Iterable[T]
