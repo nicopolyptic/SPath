@@ -92,7 +92,7 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
     }
   }
 
-  final private def checkForAxis(e : Query) = e match {case Axis(f) => \(f) case _ => e}
+  final private def checkForAxis(e : Query) = e match {case AxisStep(f) => \(f) case _ => e}
 
   final def compose(f: axis, i : Int) : axis = n => compose(child, i, List(n))
 
