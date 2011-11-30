@@ -2,7 +2,6 @@ package spath
 
 import annotation.tailrec
 import collection.immutable.Iterable
-import java.util.Date
 import collection.mutable._
 
 trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
@@ -118,12 +117,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
       }
     }
     evaluate(newMap, result, cache)
-  }
-
-  var before = new Date
-  def start = before = new Date()
-  def end(s : String) {
-     println(s + " " + new Date(new Date().getTime - before.getTime).getTime/ 1000D)
   }
 
   private object Algorithm {
