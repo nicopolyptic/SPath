@@ -189,7 +189,7 @@ object XpathMarkExamples extends XSPathLite {
   val F1_SPath = \\(bidder)?(\(increase) <= 10 and \->(rightSibling, bidder and \(increase) > 10))
   val F2_SPath = \\(bidder)?(\(increase) <= 10 and \->(leftSibling, bidder and \(increase) > 10))
   val x = $(\(parlist)\item)
-  val F3_SPath = \\(listitem)\\(compose(x, 2))\text\keyword
+  val F3_SPath = \\(listitem)\\compose(x, 2)\text\keyword
   val F4axis = $(\(seller)\$id(person)\watches\watch\$id(open_auction))
   val F4_SPath = site\open_auctions\open_auction $range(1,5)\\F4axis\interval
   val F5axis = $(\(watches)\watch\$id(open_auction)\bidder\personref\$id(person))
