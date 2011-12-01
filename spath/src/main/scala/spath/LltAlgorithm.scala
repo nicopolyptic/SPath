@@ -63,7 +63,7 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
   }
 
   def distinct(it : scala.collection.Traversable[T]) : Iterable[T] = {
-    var set = Set[IdentityWrapper[T]]()
+    var set = scala.collection.mutable.HashSet[IdentityWrapper[T]]()
     var result = ListBuffer[T]()
     for (o <- it) {
       val iw = IdentityWrapper(o)
@@ -344,11 +344,6 @@ trait LltAlgorithm[T <: AnyRef] extends QueryExpression[T] {
         if (!p.evaluate(a)) return false
       }
 
-//        e match {
-//          case p: Predicate => if (!p.evaluate(a)) return false
-//          case _ =>
-//        }
-//      }
       return true
     }
 
