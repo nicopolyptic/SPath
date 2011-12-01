@@ -7,6 +7,10 @@ import management.{MemoryMXBean, MemoryPoolMXBean}
 import scala.collection.JavaConversions
 
 object Performance extends XSPathLite {
+
+  var after : Date = new Date()
+  val A = Element("A")
+
   def main(args: Array[String]) {
 
     val root = tree(3, 10)
@@ -15,7 +19,7 @@ object Performance extends XSPathLite {
     new PrettyPrinter(1000, 3).format(root, sb)
     //   println(sb)
 
-    val A = Element("A")
+
 
     val cache: Unit => Unit = _ => {
       val query = \\(A)
@@ -36,25 +40,13 @@ object Performance extends XSPathLite {
       println(result.size)
     }
 
-
-//    println("SPath cache")
-//    time(cache)
+//    println("SPath no cache")
+//    time(nocache)
 //    printMemoryUsage
 
 
-//    println("Hand coded")
-//    time(hand)
-//    printMemoryUsage
 
-    println("SPath no cache")
-    time(nocache)
-    printMemoryUsage
-
-//    println("Scala")
-//    time(scala)
-//    printMemoryUsage
-
-
+    testSPath()
   }
 
   def time(f: Unit => Unit) {
@@ -95,6 +87,34 @@ object Performance extends XSPathLite {
 
     val bean: MemoryMXBean = java.lang.management.ManagementFactory.getMemoryMXBean()
     println("heap " + bean.getHeapMemoryUsage().getUsed().toDouble / 1048576d)
+  }
 
+  def treeScala(i:Int) {
+    val root = tree(2,i)
+    println("tree" + i)
+
+    root \\"A"
+
+
+  }
+
+
+  def treeSpath(i:Int) {
+    val root = tree(2,i)
+    println("tree" + i)
+
+    $(root, \\(A))
+
+  }
+
+
+  def testScalaXml() {
+    for (i <- 1 to 25)
+      treeScala(i)
+  }
+
+  def testSPath() {
+    for (i <- 1 to 25)
+      treeSpath(i)
   }
 }
