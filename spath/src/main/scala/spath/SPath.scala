@@ -1,9 +1,8 @@
 package spath
 
-import collection.mutable.Stack
-import java.util.Date
 import annotation.tailrec
-import collection.immutable.{VectorBuilder, SortedMap}
+import collection.immutable.{VectorBuilder}
+import collection.mutable.{ListBuffer, Stack}
 
 trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
 
@@ -125,7 +124,7 @@ trait SPath[T <: AnyRef] extends QueryExpression[T] with LltAlgorithm[T] {
     val order = (o:T, o1: T) => {
       di(IdentityWrapper(o)) < di(IdentityWrapper(o1))
     }
-    var result = List[T]()
+    var result = ListBuffer[T]()
     result ++= it
     result sortWith order
   }
